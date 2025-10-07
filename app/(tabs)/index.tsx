@@ -128,8 +128,9 @@ export default function CatalogScreen() {
 
       <ScrollView
         horizontal
+        centerContent
         showsHorizontalScrollIndicator={false}
-        style={styles.categoriesContainer}
+        style={[styles.categoriesContainer, {height: 230}]} // ← Aquí cambias la altura
         contentContainerStyle={styles.categoriesContent}
       >
         <CategoryButton
@@ -153,7 +154,7 @@ export default function CatalogScreen() {
       </ScrollView>
 
       <ScrollView
-        style={styles.productsContainer}
+        //style={styles.productsContainer}
         contentContainerStyle={styles.productsContent}
       >
         {filteredProducts.map((product) => (
@@ -187,18 +188,21 @@ const styles = StyleSheet.create({
   },
   categoriesContainer: {
     backgroundColor: '#fff',
+    height: 10,
+    marginVertical: 15,  
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
   },
   categoriesContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
     gap: 12,
+    alignItems: 'center'
   },
   categoryButton: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 20,
+    borderRadius: 18,
     backgroundColor: '#f1f3f5',
     marginRight: 8,
   },
@@ -223,16 +227,19 @@ const styles = StyleSheet.create({
   productCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
+    width: '80%',
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+    alignSelf: 'center',
+
   },
   productImage: {
     width: '100%',
-    height: 200,
+    height: 100,
     backgroundColor: '#f1f3f5',
   },
   productInfo: {
