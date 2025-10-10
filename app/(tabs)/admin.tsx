@@ -2,7 +2,12 @@ import { useProducts } from '../../contexts/Productscontext';
 import { Product, ProductCategory } from '../../types/product';
 import { Stack } from 'expo-router';
 import { Edit2, Plus, Trash2 } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Constants from 'expo-constants';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from '../../firebaseConfig';
+import AdminLogin from '../../components/AdminLogin';
+
 import {
   Alert,
   Image,
@@ -15,7 +20,13 @@ import {
   View,
 } from 'react-native';
 
+const ADMIN_EMAIL = Constants.expoConfig?.extra?.ADMIN_EMAIL as string;
+
+
 export default function AdminScreen() {
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [showLogin, setShowLogin] = useState(false);
+
   const { products, addProduct, updateProduct, deleteProduct, isLoading } = useProducts();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -26,6 +37,33 @@ export default function AdminScreen() {
     image: '',
     category: 'cleaning' as ProductCategory,
   });
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      const authorized = !!user && user.email === ADMIN_EMAIL;
+      setIsAuthorized(authorized);
+      setShowLogin(!authorized);
+    });
+    return unsubscribe;
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+  };
+
+   // Mostrar login si no está autorizado
+   if (showLogin) {
+    return <AdminLogin onLogin={() => setShowLogin(false)} />;
+  }
+
+  // Mostrar loading mientras verifica
+  if (isAuthorized === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Verificando acceso...</Text>
+      </View>
+    );
+  }
 
   const resetForm = () => {
     setFormData({
@@ -120,6 +158,11 @@ export default function AdminScreen() {
           headerStyle: { backgroundColor: '#2d6a4f' },
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: '700' as const },
+          headerRight: () => (
+            <TouchableOpacity onPress={handleLogout}>
+              <Text style={{ color: '#fff', marginRight: 16 }}>Salir</Text>
+            </TouchableOpacity>
+          ),
         }}
       />
       <View style={styles.header}>

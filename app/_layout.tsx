@@ -1,3 +1,5 @@
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../firebaseConfig';
 import { CartProvider } from '../contexts/CartContext';
 import { ProductsProvider } from '../contexts/Productscontext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -11,6 +13,10 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, u => console.log('user?', !!u));
+    return unsub;
+  }, []);
   return (
     <Stack screenOptions={{ headerBackTitle: 'Atrás' }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

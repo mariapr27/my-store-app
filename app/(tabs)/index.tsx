@@ -130,6 +130,7 @@ export default function CatalogScreen() {
         horizontal
         centerContent
         showsHorizontalScrollIndicator={false}
+        //style={styles.categoriesContainer}
         style={[styles.categoriesContainer, {height: 230}]} // ← Aquí cambias la altura
         contentContainerStyle={styles.categoriesContent}
       >
@@ -199,13 +200,23 @@ const styles = StyleSheet.create({
     gap: 12,
     alignItems: 'center'
   },
+  // categoryButton: {
+  //   paddingHorizontal: 20,
+  //   paddingVertical: 10,
+  //   borderRadius: 18,
+  //   backgroundColor: '#f1f3f5',
+  //   marginRight: 8,
+  // },
   categoryButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 18,
-    backgroundColor: '#f1f3f5',
-    marginRight: 8,
-  },
+      height: 40,
+      minWidth: 110,            // iguala ancho visual entre textos distintos
+      paddingHorizontal: 16,
+      borderRadius: 20,
+      backgroundColor: '#f1f3f5',
+      marginRight: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
   categoryButtonActive: {
     backgroundColor: '#2d6a4f',
   },
@@ -227,7 +238,8 @@ const styles = StyleSheet.create({
   productCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
-    width: '80%',
+    width: 600,
+    height: 300,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -235,11 +247,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
     alignSelf: 'center',
+    marginHorizontal: 10,
 
   },
   productImage: {
     width: '100%',
-    height: 100,
+    height: 150,
     backgroundColor: '#f1f3f5',
   },
   productInfo: {
