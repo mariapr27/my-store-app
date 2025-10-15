@@ -131,7 +131,7 @@ export default function CatalogScreen() {
         centerContent
         showsHorizontalScrollIndicator={false}
         //style={styles.categoriesContainer}
-        style={[styles.categoriesContainer, {height: 230}]} // ← Aquí cambias la altura
+        style={[styles.categoriesContainer, {height: 290}]} // ← Aquí cambias la altura
         contentContainerStyle={styles.categoriesContent}
       >
         <CategoryButton
@@ -189,16 +189,13 @@ const styles = StyleSheet.create({
   },
   categoriesContainer: {
     backgroundColor: '#fff',
-    height: 10,
-    marginVertical: 15,  
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
   },
   categoriesContent: {
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     gap: 12,
-    alignItems: 'center'
   },
   // categoryButton: {
   //   paddingHorizontal: 20,
@@ -238,21 +235,21 @@ const styles = StyleSheet.create({
   productCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
-    width: 600,
-    height: 300,
+    // width: 600,
+    // height: 300,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
-    alignSelf: 'center',
-    marginHorizontal: 10,
+    // alignSelf: 'center',
+    // marginHorizontal: 10,
 
   },
   productImage: {
     width: '100%',
-    height: 150,
+    height: 200,
     backgroundColor: '#f1f3f5',
   },
   productInfo: {

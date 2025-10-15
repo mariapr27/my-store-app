@@ -1,13 +1,10 @@
 import { useProducts } from '../../contexts/Productscontext';
 import { Product, ProductCategory } from '../../types/product';
 import { Stack } from 'expo-router';
-import { Edit2, Plus, Trash2 } from 'lucide-react-native';
+import { Edit2, LogOut, Plus, Trash2 } from 'lucide-react-native';
 import React, { useState, useEffect } from 'react';
-import Constants from 'expo-constants';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signOut, signInWithEmailAndPassword, User } from 'firebase/auth';
 import { auth } from '../../firebaseConfig';
-import AdminLogin from '../../components/AdminLogin';
-
 import {
   Alert,
   Image,
@@ -18,16 +15,18 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Platform,
 } from 'react-native';
 
-const ADMIN_EMAIL = Constants.expoConfig?.extra?.ADMIN_EMAIL as string;
-
+const ADMIN_EMAIL = 'miyayitastore@gmail.com'; //  email de admin
 
 export default function AdminScreen() {
-  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
-  const [showLogin, setShowLogin] = useState(false);
-
-  const { products, addProduct, updateProduct, deleteProduct, isLoading } = useProducts();
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  const [loginError, setLoginError] = useState('');
+  
+  const { products, addProduct, updateProduct, deleteProduct } = useProducts();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
@@ -40,30 +39,64 @@ export default function AdminScreen() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      const authorized = !!user && user.email === ADMIN_EMAIL;
-      setIsAuthorized(authorized);
-      setShowLogin(!authorized);
+      setUser(user);
+      setIsLoading(false);
     });
     return unsubscribe;
   }, []);
 
-  const handleLogout = async () => {
-    await signOut(auth);
+  const isAuthenticated = !!user;
+  const isAdmin = user?.email === ADMIN_EMAIL;
+
+  const handleLogin = async () => {
+    setLoginError('');
+    try {
+      await signInWithEmailAndPassword(auth, loginForm.email, loginForm.password);
+    } catch (error: any) {
+      setLoginError('Credenciales incorrectas');
+    }
   };
 
-   // Mostrar login si no está autorizado
-   if (showLogin) {
-    return <AdminLogin onLogin={() => setShowLogin(false)} />;
-  }
+  const handleLogout = () => {
+    if (Platform.OS === 'web') {
+      const confirmed = typeof window !== 'undefined' && typeof window.confirm === 'function'
+        ? window.confirm('¿Estás seguro de cerrar sesión?')
+        : true;
+      if (!confirmed) return;
+      (async () => {
+        try {
+          await signOut(auth);
+          setUser(null);
+        } catch (error) {
+          // En web, usa alert simple
+          if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+            window.alert('No se pudo cerrar sesión. Inténtalo de nuevo.');
+          }
+        }
+      })();
+      return;
+    }
 
-  // Mostrar loading mientras verifica
-  if (isAuthorized === null) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text>Verificando acceso...</Text>
-      </View>
+    Alert.alert(
+      'Cerrar sesión',
+      '¿Estás seguro de cerrar sesión?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar sesión',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut(auth);
+              setUser(null);
+            } catch (error) {
+              Alert.alert('Error', 'No se pudo cerrar sesión. Inténtalo de nuevo.');
+            }
+          },
+        },
+      ]
     );
-  }
+  };
 
   const resetForm = () => {
     setFormData({
@@ -142,7 +175,7 @@ export default function AdminScreen() {
     );
   };
 
-  if (isLoading) {
+  if (isLoading || isLoading) {
     return (
       <View style={styles.container}>
         <Text style={styles.loadingText}>Cargando...</Text>
@@ -150,6 +183,71 @@ export default function AdminScreen() {
     );
   }
 
+  if (!isAuthenticated || !isAdmin) {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen
+          options={{
+            title: 'Iniciar Sesión',
+            headerStyle: { backgroundColor: '#2d6a4f' },
+            headerTintColor: '#fff',
+            headerTitleStyle: { fontWeight: '700' as const },
+          }}
+        />
+        <View style={styles.loginContainer}>
+          <View style={styles.loginCard}>
+            <Text style={styles.loginTitle}>Acceso Administrador</Text>
+            <Text style={styles.loginSubtitle}>
+              Ingresa tus credenciales para continuar
+            </Text>
+
+            <View style={styles.loginForm}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={styles.input}
+                value={loginForm.email}
+                onChangeText={(text) =>
+                  setLoginForm({ ...loginForm, email: text })
+                }
+                placeholder="admin@tutienda.com"
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+              />
+
+              <Text style={styles.label}>Contraseña</Text>
+              <TextInput
+                style={styles.input}
+                value={loginForm.password}
+                onChangeText={(text) =>
+                  setLoginForm({ ...loginForm, password: text })
+                }
+                placeholder="Ingresa tu contraseña"
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                onSubmitEditing={handleLogin}
+                returnKeyType="go"
+              />
+
+              {loginError ? (
+                <Text style={styles.errorText}>{loginError}</Text>
+              ) : null}
+
+              <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+                <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+              </TouchableOpacity>
+
+              <View style={styles.credentialsHint}>
+                <Text style={styles.hintText}>Solo el administrador puede acceder</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
+//return hacia vista de los producto agregar, eliminar, editar
   return (
     <View style={styles.container}>
       <Stack.Screen
@@ -158,19 +256,22 @@ export default function AdminScreen() {
           headerStyle: { backgroundColor: '#2d6a4f' },
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: '700' as const },
-          headerRight: () => (
-            <TouchableOpacity onPress={handleLogout}>
-              <Text style={{ color: '#fff', marginRight: 16 }}>Salir</Text>
-            </TouchableOpacity>
-          ),
         }}
       />
       <View style={styles.header}>
-        <Text style={styles.title}>Administrar Productos</Text>
-        <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
-          <Plus size={24} color="#fff" />
-          <Text style={styles.addButtonText}>Agregar</Text>
-        </TouchableOpacity>
+        <View>
+          <Text style={styles.title}>Administrar Productos</Text>
+          <Text style={styles.welcomeText}>Bienvenido, {user?.email}</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
+            <Plus size={20} color="#fff" />
+            <Text style={styles.addButtonText}>Agregar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <LogOut size={20} color="#dc3545" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.content}>
@@ -353,8 +454,88 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: '#fff',
+    fontSize: 14,
+    fontWeight: '600' as const,
+  },
+  welcomeText: {
+    fontSize: 14,
+    color: '#6c757d',
+    marginTop: 4,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  logoutButton: {
+    padding: 10,
+    backgroundColor: '#ffe5e5',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loginContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#f8f9fa',
+  },
+  loginCard: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  loginTitle: {
+    fontSize: 28,
+    fontWeight: '700' as const,
+    color: '#2d6a4f',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  loginSubtitle: {
+    fontSize: 14,
+    color: '#6c757d',
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  loginForm: {
+    gap: 16,
+  },
+  loginButton: {
+    backgroundColor: '#2d6a4f',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  loginButtonText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600' as const,
+  },
+  errorText: {
+    color: '#dc3545',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  credentialsHint: {
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: '#e7f5f0',
+    borderRadius: 8,
+    gap: 4,
+  },
+  hintText: {
+    fontSize: 12,
+    color: '#2d6a4f',
+    textAlign: 'center',
   },
   content: {
     flex: 1,
