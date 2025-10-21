@@ -1,79 +1,106 @@
 import createContextHook from '@nkzw/create-context-hook';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Product } from '../types/product';
-import { products as initialProducts } from '../data/products';
-
-const PRODUCTS_STORAGE_KEY = '@products_list';
+import { useEffect, useState, useCallback } from 'react';
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc, 
+  doc, 
+  onSnapshot,
+  query,
+  orderBy 
+} from 'firebase/firestore';
+import { db } from '../firebaseConfig';
+import { Product, ProductCategory } from '../types/product';
 
 export const [ProductsProvider, useProducts] = createContextHook(() => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadProducts();
-  }, []);
-
-  const loadProducts = async () => {
-    try {
-      const stored = await AsyncStorage.getItem(PRODUCTS_STORAGE_KEY);
-      if (stored) {
-        setProducts(JSON.parse(stored));
-      } else {
-        setProducts(initialProducts);
-        await AsyncStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(initialProducts));
-      }
-    } catch (error) {
-      console.error('Error loading products:', error);
-      setProducts(initialProducts);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const saveProducts = useCallback(async (newProducts: Product[]) => {
-    try {
-      await AsyncStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(newProducts));
-      setProducts(newProducts);
-    } catch (error) {
-      console.error('Error saving products:', error);
-    }
-  }, []);
-
-  const addProduct = useCallback((product: Omit<Product, 'id'>) => {
-    const newProduct: Product = {
-      ...product,
-      id: Date.now().toString(),
-    };
-    const updatedProducts = [...products, newProduct];
-    saveProducts(updatedProducts);
-  }, [products, saveProducts]);
-
-  const updateProduct = useCallback((id: string, updates: Partial<Product>) => {
-    const updatedProducts = products.map((p) =>
-      p.id === id ? { ...p, ...updates } : p
+    const productsQuery = query(
+      collection(db, 'products'),
+      orderBy('createdAt', 'desc')
     );
-    saveProducts(updatedProducts);
-  }, [products, saveProducts]);
+    
+    const unsubscribe = onSnapshot(productsQuery, 
+      (snapshot) => {
+        const productsData: Product[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          productsData.push({
+            id: doc.id,
+            name: data.name,
+            description: data.description,
+            price: data.price,
+            image: data.image,
+            category: data.category as ProductCategory,
+            stock: data.stock || 0,
+            createdAt: data.createdAt?.toDate(),
+          });
+        });
+        setProducts(productsData);
+        setIsLoading(false);
+        setError(null);
+      },
+      (err) => {
+        setError(err.message);
+        setIsLoading(false);
+        console.error('Error obteniendo productos:', err);
+      }
+    );
 
-  const deleteProduct = useCallback((id: string) => {
-    const updatedProducts = products.filter((p) => p.id !== id);
-    saveProducts(updatedProducts);
-  }, [products, saveProducts]);
+    return () => unsubscribe();
+  }, []);
+
+  const addProduct = useCallback(async (productData: Omit<Product, 'id'>) => {
+    try {
+      const docRef = await addDoc(collection(db, 'products'), {
+        ...productData,
+        stock: productData.stock || 0,
+        createdAt: new Date(),
+      });
+      console.log('Producto agregado con ID:', docRef.id);
+      return docRef.id;
+    } catch (err) {
+      console.error('Error agregando producto:', err);
+      throw err;
+    }
+  }, []);
+
+  const updateProduct = useCallback(async (productId: string, productData: Partial<Omit<Product, 'id'>>) => {
+    try {
+      const productRef = doc(db, 'products', productId);
+      await updateDoc(productRef, productData);
+      console.log('Producto actualizado:', productId);
+    } catch (err) {
+      console.error('Error actualizando producto:', err);
+      throw err;
+    }
+  }, []);
+
+  const deleteProduct = useCallback(async (productId: string) => {
+    try {
+      await deleteDoc(doc(db, 'products', productId));
+      console.log('Producto eliminado:', productId);
+    } catch (err) {
+      console.error('Error eliminando producto:', err);
+      throw err;
+    }
+  }, []);
 
   const getProductById = useCallback((id: string) => {
     return products.find((p) => p.id === id);
   }, [products]);
 
-  return useMemo(
-    () => ({
-      products,
-      isLoading,
-      addProduct,
-      updateProduct,
-      deleteProduct,
-      getProductById,
-    }),
-    [products, isLoading, addProduct, updateProduct, deleteProduct, getProductById]
-  );
+  return {
+    products,
+    isLoading,
+    error,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    getProductById,
+  };
 });

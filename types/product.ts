@@ -7,6 +7,8 @@ export interface Product {
   price: number;
   image: string;
   category: ProductCategory;
+  stock: number; 
+  createdAt?: Date;
 }
 
 export interface CartItem {

@@ -153,6 +153,7 @@ export default function AdminScreen() {
         price,
         image: formData.image || 'https://via.placeholder.com/400',
         category: formData.category,
+        stock: 0
       });
     }
 
