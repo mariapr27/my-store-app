@@ -23,16 +23,20 @@ const ADMIN_EMAIL = 'miyayitastore@gmail.com'; //  email de admin
 export default function AdminScreen() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState('');
   
   const { products, addProduct, updateProduct, deleteProduct } = useProducts();
   const [modalVisible, setModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     price: '',
+    stock: '',
     image: '',
     category: 'cleaning' as ProductCategory,
   });
@@ -103,6 +107,7 @@ export default function AdminScreen() {
       name: '',
       description: '',
       price: '',
+      stock: '',
       image: '',
       category: 'cleaning',
     });
@@ -120,6 +125,7 @@ export default function AdminScreen() {
       name: product.name,
       description: product.description,
       price: product.price.toString(),
+      stock: product.stock.toString(), // Convert stock (number) to string
       image: product.image,
       category: product.category,
     });
@@ -143,6 +149,7 @@ export default function AdminScreen() {
         name: formData.name,
         description: formData.description,
         price,
+        stock: parseInt(formData.stock),
         image: formData.image || 'https://via.placeholder.com/400',
         category: formData.category,
       });
@@ -151,9 +158,9 @@ export default function AdminScreen() {
         name: formData.name,
         description: formData.description,
         price,
+        stock: parseInt(formData.stock),
         image: formData.image || 'https://via.placeholder.com/400',
         category: formData.category,
-        stock: 0
       });
     }
 
@@ -162,18 +169,40 @@ export default function AdminScreen() {
   };
 
   const handleDelete = (product: Product) => {
-    Alert.alert(
-      'Confirmar eliminación',
-      `¿Estás seguro de eliminar "${product.name}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: () => deleteProduct(product.id),
-        },
-      ]
-    );
+    console.log('🔴 handleDelete llamado para producto:', product.name, 'ID:', product.id);
+    setProductToDelete(product);
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!productToDelete) return;
+    
+    console.log('✅ Usuario confirmó la eliminación, iniciando proceso...');
+    setIsDeleting(true);
+    setDeleteModalVisible(false);
+    
+    try {
+      console.log('🔄 Llamando a deleteProduct con ID:', productToDelete.id);
+      await deleteProduct(productToDelete.id);
+      console.log('✅ deleteProduct completado exitosamente');
+      Alert.alert('Éxito', 'Producto eliminado correctamente');
+    } catch (error) {
+      console.error('❌ Error en handleDelete:', error);
+      Alert.alert(
+        'Error', 
+        'No se pudo eliminar el producto. Verifica tu conexión e inténtalo de nuevo.'
+      );
+    } finally {
+      console.log('🔄 Finalizando proceso de eliminación');
+      setIsDeleting(false);
+      setProductToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    console.log('❌ Usuario canceló la eliminación');
+    setDeleteModalVisible(false);
+    setProductToDelete(null);
   };
 
   if (isLoading || isLoading) {
@@ -297,10 +326,14 @@ export default function AdminScreen() {
                 <Edit2 size={20} color="#2d6a4f" />
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.deleteButton}
+                style={[
+                  styles.deleteButton,
+                  isDeleting && styles.disabledButton
+                ]}
                 onPress={() => handleDelete(product)}
+                disabled={isDeleting}
               >
-                <Trash2 size={20} color="#dc3545" />
+                <Trash2 size={20} color={isDeleting ? "#adb5bd" : "#dc3545"} />
               </TouchableOpacity>
             </View>
           </View>
@@ -348,6 +381,15 @@ export default function AdminScreen() {
                 onChangeText={(text) => setFormData({ ...formData, price: text })}
                 placeholder="0.00"
                 keyboardType="decimal-pad"
+              />
+
+              <Text style={styles.label}>Stock *</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.stock}
+                onChangeText={(text) => setFormData({ ...formData, stock: text })}
+                placeholder="0"
+                keyboardType="numeric"
               />
 
               <Text style={styles.label}>URL de Imagen</Text>
@@ -410,6 +452,44 @@ export default function AdminScreen() {
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
                 <Text style={styles.saveButtonText}>Guardar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de confirmación de eliminación */}
+      <Modal
+        visible={deleteModalVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={cancelDelete}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.deleteModalContent}>
+            <Text style={styles.deleteModalTitle}>Confirmar eliminación</Text>
+            <Text style={styles.deleteModalMessage}>
+              ¿Estás seguro de eliminar "{productToDelete?.name}"?
+            </Text>
+            <Text style={styles.deleteModalWarning}>
+              Esta acción no se puede deshacer.
+            </Text>
+            
+            <View style={styles.deleteModalActions}>
+              <TouchableOpacity
+                style={styles.deleteCancelButton}
+                onPress={cancelDelete}
+              >
+                <Text style={styles.deleteCancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteConfirmButton}
+                onPress={confirmDelete}
+                disabled={isDeleting}
+              >
+                <Text style={styles.deleteConfirmButtonText}>
+                  {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -574,7 +654,13 @@ const styles = StyleSheet.create({
     color: '#6c757d',
     marginBottom: 4,
   },
-  productPrice: {
+    productPrice: {
+      fontSize: 16,
+      fontWeight: '700' as const,
+      color: '#2d6a4f',
+      marginBottom: 4,
+    },
+  productStock: {
     fontSize: 16,
     fontWeight: '700' as const,
     color: '#2d6a4f',
@@ -598,6 +684,10 @@ const styles = StyleSheet.create({
     padding: 8,
     backgroundColor: '#ffe5e5',
     borderRadius: 8,
+  },
+  disabledButton: {
+    backgroundColor: '#f8f9fa',
+    opacity: 0.6,
   },
   modalOverlay: {
     flex: 1,
@@ -689,6 +779,65 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#fff',
+  },
+  // Estilos para modal de eliminación
+  deleteModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: '90%',
+    maxWidth: 400,
+    alignItems: 'center',
+  },
+  deleteModalTitle: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#dc3545',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  deleteModalMessage: {
+    fontSize: 16,
+    color: '#495057',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  deleteModalWarning: {
+    fontSize: 14,
+    color: '#6c757d',
+    marginBottom: 24,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  deleteModalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  deleteCancelButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ced4da',
+    alignItems: 'center',
+  },
+  deleteCancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#495057',
+  },
+  deleteConfirmButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 8,
+    backgroundColor: '#dc3545',
+    alignItems: 'center',
+  },
+  deleteConfirmButtonText: {
     fontSize: 16,
     fontWeight: '600' as const,
     color: '#fff',

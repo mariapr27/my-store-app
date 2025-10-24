@@ -162,6 +162,10 @@ const generateReceiptHTML = (order: Order): string => {
           <span class="info-value">${order.customer.fullName}</span>
         </div>
         <div class="info-row">
+          <span class="info-label">Cedula:</span>
+          <span class="info-value">${order.customer.cedula}</span>
+        </div>
+        <div class="info-row">
           <span class="info-label">Email:</span>
           <span class="info-value">${order.customer.email}</span>
         </div>
@@ -289,6 +293,7 @@ export default function ReceiptScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Cliente</Text>
             <Text style={styles.infoText}>{order.customer.fullName}</Text>
+            <Text style={styles.infoText}>{order.customer.cedula}</Text>
             <Text style={styles.infoText}>{order.customer.email}</Text>
             <Text style={styles.infoText}>{order.customer.phone}</Text>
             <Text style={styles.infoText}>{order.customer.address}</Text>

@@ -8,9 +8,10 @@ import {
   doc, 
   onSnapshot,
   query,
-  orderBy 
+  orderBy,
+  getDocs
 } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { db, auth } from '../firebaseConfig';
 import { Product, ProductCategory } from '../types/product';
 
 export const [ProductsProvider, useProducts] = createContextHook(() => {
@@ -34,9 +35,9 @@ export const [ProductsProvider, useProducts] = createContextHook(() => {
             name: data.name,
             description: data.description,
             price: data.price,
+            stock: data.stock,
             image: data.image,
             category: data.category as ProductCategory,
-            stock: data.stock || 0,
             createdAt: data.createdAt?.toDate(),
           });
         });
@@ -58,7 +59,6 @@ export const [ProductsProvider, useProducts] = createContextHook(() => {
     try {
       const docRef = await addDoc(collection(db, 'products'), {
         ...productData,
-        stock: productData.stock || 0,
         createdAt: new Date(),
       });
       console.log('Producto agregado con ID:', docRef.id);
@@ -82,10 +82,71 @@ export const [ProductsProvider, useProducts] = createContextHook(() => {
 
   const deleteProduct = useCallback(async (productId: string) => {
     try {
-      await deleteDoc(doc(db, 'products', productId));
-      console.log('Producto eliminado:', productId);
-    } catch (err) {
-      console.error('Error eliminando producto:', err);
+      console.log('=== INICIANDO ELIMINACIÓN DE PRODUCTO ===');
+      console.log('ID del producto:', productId);
+      console.log('Usuario autenticado:', auth.currentUser?.email);
+      console.log('UID del usuario:', auth.currentUser?.uid);
+      console.log('Estado de autenticación:', !!auth.currentUser);
+      
+      // Verificar si el usuario está autenticado
+      if (!auth.currentUser) {
+        throw new Error('Usuario no autenticado');
+      }
+      
+      // Actualizar estado local inmediatamente para feedback visual
+      setProducts(prevProducts => {
+        console.log('Actualizando estado local...');
+        const filteredProducts = prevProducts.filter(product => product.id !== productId);
+        console.log('Productos antes:', prevProducts.length);
+        console.log('Productos después:', filteredProducts.length);
+        return filteredProducts;
+      });
+      
+      // Intentar eliminar de Firebase
+      console.log('Intentando eliminar de Firebase...');
+      const productRef = doc(db, 'products', productId);
+      console.log('Referencia del documento:', productRef.path);
+      
+      await deleteDoc(productRef);
+      console.log('✅ Producto eliminado exitosamente de Firebase');
+      
+    } catch (err: any) {
+      console.error('❌ Error eliminando producto:', err);
+      console.error('Tipo de error:', typeof err);
+      console.error('Código de error:', err?.code);
+      console.error('Mensaje de error:', err?.message);
+      console.error('Stack trace:', err?.stack);
+      
+      // Revertir cambios en estado local si falla
+      console.log('Revirtiendo cambios en estado local...');
+      // Recargar productos desde Firebase para sincronizar
+      const productsQuery = query(
+        collection(db, 'products'),
+        orderBy('createdAt', 'desc')
+      );
+      
+      try {
+        const snapshot = await getDocs(productsQuery);
+        const productsData: Product[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          productsData.push({
+            id: doc.id,
+            name: data.name,
+            description: data.description,
+            price: data.price,
+            stock: data.stock,
+            image: data.image,
+            category: data.category as ProductCategory,
+            createdAt: data.createdAt?.toDate(),
+          });
+        });
+        setProducts(productsData);
+        console.log('Estado local sincronizado con Firebase');
+      } catch (syncError) {
+        console.error('Error sincronizando estado local:', syncError);
+      }
+      
       throw err;
     }
   }, []);

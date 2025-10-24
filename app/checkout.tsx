@@ -17,18 +17,36 @@ export default function CheckoutScreen() {
   const { items, getTotal, clearCart } = useCart();
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     fullName: '',
+    cedula: '',
     email: '',
     phone: '',
     address: '',
   });
-  const [paymentMethod, setPaymentMethod] = useState('credit_card');
+  const [paymentMethod, setPaymentMethod] = useState('transferencia');
   const [errors, setErrors] = useState<Partial<CustomerInfo>>({});
+  
+  // Datos bancarios para transferencia
+  const bankData = {
+    accountNumber: '0102-1234-5678-9012',
+    bank: 'Banco de Venezuela',
+    rif: 'J-12345678-9'
+  };
+
+  // Datos bancarios para Pago Movil
+  const mobilePaymentData = {
+    phoneNumber: '+58 412-123-4567',
+    bank: 'Banco de Venezuela',
+    rif: 'J-12345678-9'
+  };
 
   const validateForm = (): boolean => {
     const newErrors: Partial<CustomerInfo> = {};
 
     if (!customerInfo.fullName.trim()) {
       newErrors.fullName = 'El nombre completo es requerido';
+    }
+    if (!customerInfo.cedula.trim()) {
+      newErrors.cedula = 'La cédula es requerida';
     }
 
     if (!customerInfo.email.trim()) {
@@ -65,7 +83,7 @@ export default function CheckoutScreen() {
       items,
       total: getTotal(),
       paymentMethod:
-        paymentMethod === 'credit_card' ? 'Tarjeta de Crédito' : 'Efectivo',
+        paymentMethod === 'transferencia' ? 'Transferencia' : 'Pago Movil',
     };
 
     router.push({
@@ -111,6 +129,23 @@ export default function CheckoutScreen() {
           </View>
 
           <View style={styles.inputGroup}>
+            <Text style={styles.label}>Cedula</Text>
+            <TextInput
+              style={[styles.input, errors.cedula && styles.inputError]}
+              value={customerInfo.cedula}
+              onChangeText={(text) =>
+                setCustomerInfo({ ...customerInfo, cedula: text })
+              }
+              placeholder="12345678"
+              placeholderTextColor="#adb5bd"
+              keyboardType="phone-pad"
+            />
+            {errors.cedula && (
+              <Text style={styles.errorText}>{errors.cedula}</Text>
+            )}
+          </View>
+
+          <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
             <TextInput
               style={[styles.input, errors.email && styles.inputError]}
@@ -136,7 +171,7 @@ export default function CheckoutScreen() {
               onChangeText={(text) =>
                 setCustomerInfo({ ...customerInfo, phone: text })
               }
-              placeholder="+1 234 567 8900"
+              placeholder="+58 2345678900"
               placeholderTextColor="#adb5bd"
               keyboardType="phone-pad"
             />
@@ -172,23 +207,23 @@ export default function CheckoutScreen() {
           <Text style={styles.sectionTitle}>Método de Pago</Text>
 
           <Pressable
-            onPress={() => setPaymentMethod('credit_card')}
+            onPress={() => setPaymentMethod('transferencia')}
             style={[
               styles.paymentOption,
-              paymentMethod === 'credit_card' && styles.paymentOptionActive,
+              paymentMethod === 'transferencia' && styles.paymentOptionActive,
             ]}
           >
             <View style={styles.paymentOptionContent}>
               <CreditCard size={24} color="#2d6a4f" />
-              <Text style={styles.paymentOptionText}>Tarjeta de Crédito</Text>
+              <Text style={styles.paymentOptionText}>Transferencia</Text>
             </View>
             <View
               style={[
                 styles.radio,
-                paymentMethod === 'credit_card' && styles.radioActive,
+                paymentMethod === 'transferencia' && styles.radioActive,
               ]}
             >
-              {paymentMethod === 'credit_card' && (
+              {paymentMethod === 'transferencia' && (
                 <View style={styles.radioInner} />
               )}
             </View>
@@ -203,7 +238,7 @@ export default function CheckoutScreen() {
           >
             <View style={styles.paymentOptionContent}>
               <Text style={styles.cashIcon}>💵</Text>
-              <Text style={styles.paymentOptionText}>Efectivo</Text>
+              <Text style={styles.paymentOptionText}>Pago Movil</Text>
             </View>
             <View
               style={[
@@ -215,6 +250,58 @@ export default function CheckoutScreen() {
             </View>
           </Pressable>
         </View>
+
+        {/* Datos bancarios para transferencia */}
+        {paymentMethod === 'transferencia' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Datos para Transferencia</Text>
+            <View style={styles.bankDataContainer}>
+              <View style={styles.bankDataItem}>
+                <Text style={styles.bankDataLabel}>Número de Cuenta:</Text>
+                <Text style={styles.bankDataValue}>{bankData.accountNumber}</Text>
+              </View>
+              <View style={styles.bankDataItem}>
+                <Text style={styles.bankDataLabel}>Banco:</Text>
+                <Text style={styles.bankDataValue}>{bankData.bank}</Text>
+              </View>
+              <View style={styles.bankDataItem}>
+                <Text style={styles.bankDataLabel}>RIF:</Text>
+                <Text style={styles.bankDataValue}>{bankData.rif}</Text>
+              </View>
+            </View>
+            <View style={styles.bankDataNote}>
+              <Text style={styles.bankDataNoteText}>
+                Realiza la transferencia por el monto exacto del pedido y envía el comprobante al email registrado.
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Datos bancarios para Pago Movil */}
+        {paymentMethod === 'cash' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Datos para Pago Movil</Text>
+            <View style={styles.bankDataContainer}>
+              <View style={styles.bankDataItem}>
+                <Text style={styles.bankDataLabel}>Número de Teléfono:</Text>
+                <Text style={styles.bankDataValue}>{mobilePaymentData.phoneNumber}</Text>
+              </View>
+              <View style={styles.bankDataItem}>
+                <Text style={styles.bankDataLabel}>Banco:</Text>
+                <Text style={styles.bankDataValue}>{mobilePaymentData.bank}</Text>
+              </View>
+              <View style={styles.bankDataItem}>
+                <Text style={styles.bankDataLabel}>RIF:</Text>
+                <Text style={styles.bankDataValue}>{mobilePaymentData.rif}</Text>
+              </View>
+            </View>
+            <View style={styles.bankDataNote}>
+              <Text style={styles.bankDataNoteText}>
+                Realiza el pago móvil por el monto exacto del pedido y envía el comprobante al email registrado.
+              </Text>
+            </View>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Resumen del Pedido</Text>
@@ -410,5 +497,44 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 17,
     fontWeight: '700' as const,
+  },
+  // Estilos para datos bancarios
+  bankDataContainer: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  bankDataItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  bankDataLabel: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#495057',
+    flex: 1,
+  },
+  bankDataValue: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#2d6a4f',
+    textAlign: 'right',
+    flex: 1,
+  },
+  bankDataNote: {
+    backgroundColor: '#e3f2fd',
+    borderRadius: 8,
+    padding: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2196f3',
+  },
+  bankDataNoteText: {
+    fontSize: 13,
+    color: '#1565c0',
+    fontStyle: 'italic',
+    lineHeight: 18,
   },
 });

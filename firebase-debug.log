@@ -1,0 +1,27 @@
+[debug] [2025-10-22T16:31:04.605Z] ----------------------------------------------------------------------
+[debug] [2025-10-22T16:31:04.615Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\mpena\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:rules
+[debug] [2025-10-22T16:31:04.616Z] CLI Version:   14.19.1
+[debug] [2025-10-22T16:31:04.617Z] Platform:      win32
+[debug] [2025-10-22T16:31:04.617Z] Node Version:  v20.18.0
+[debug] [2025-10-22T16:31:04.617Z] Time:          Wed Oct 22 2025 12:31:04 GMT-0400 (hora de Venezuela)
+[debug] [2025-10-22T16:31:04.617Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-10-22T16:31:05.661Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-10-22T16:31:05.664Z] > authorizing via signed-in user (miyayitastore@gmail.com)
+[debug] [2025-10-22T16:31:05.664Z] [iam] checking project miyayita-store for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2025-10-22T16:31:05.668Z] Checked if tokens are valid: true, expires at: 1761152847884
+[debug] [2025-10-22T16:31:05.668Z] Checked if tokens are valid: true, expires at: 1761152847884
+[debug] [2025-10-22T16:31:05.670Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/miyayita-store:testIamPermissions [none]
+[debug] [2025-10-22T16:31:05.671Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/miyayita-store:testIamPermissions x-goog-quota-user=projects/miyayita-store
+[debug] [2025-10-22T16:31:05.671Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/miyayita-store:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2025-10-22T16:31:17.882Z] *** [apiv2] error from fetch(https://cloudresourcemanager.googleapis.com/v1/projects/miyayita-store:testIamPermissions, {"headers":{},"method":"POST","body":"{\"permissions\":[\"datastore.indexes.create\",\"datastore.indexes.delete\",\"datastore.indexes.list\",\"datastore.indexes.update\",\"firebase.projects.get\"]}"}): FetchError: request to https://cloudresourcemanager.googleapis.com/v1/projects/miyayita-store:testIamPermissions failed, reason: getaddrinfo ENOTFOUND cloudresourcemanager.googleapis.com
+[debug] [2025-10-22T16:31:17.883Z] [iam] error while checking permissions, command may fail: Failed to make request to https://cloudresourcemanager.googleapis.com/v1/projects/miyayita-store:testIamPermissions
+[info] 
+[info] === Deploying to 'miyayita-store'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2025-10-22T16:31:17.896Z] Checked if tokens are valid: true, expires at: 1761152847884
+[debug] [2025-10-22T16:31:17.897Z] Checked if tokens are valid: true, expires at: 1761152847884
+[debug] [2025-10-22T16:31:17.898Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/miyayita-store/databases/(default) [none]

@@ -12,11 +12,63 @@ import {
 } from 'react-native';
 
 export default function CartScreen() {
-  const { items, updateQuantity, removeFromCart, getTotal } = useCart();
+  const { items, updateQuantity, removeFromCart, getTotal, isLoading, error } = useCart();
 
   const handleCheckout = () => {
     router.push('/checkout');
   };
+
+  const handleUpdateQuantity = async (productId: string, quantity: number) => {
+    try {
+      await updateQuantity(productId, quantity);
+    } catch (error) {
+      console.error('Error actualizando cantidad:', error);
+    }
+  };
+
+  const handleRemoveFromCart = async (productId: string) => {
+    try {
+      await removeFromCart(productId);
+    } catch (error) {
+      console.error('Error removiendo del carrito:', error);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen
+          options={{
+            title: 'Carrito',
+            headerStyle: { backgroundColor: '#2d6a4f' },
+            headerTintColor: '#fff',
+            headerTitleStyle: { fontWeight: '700' as const },
+          }}
+        />
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Cargando carrito...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen
+          options={{
+            title: 'Carrito',
+            headerStyle: { backgroundColor: '#2d6a4f' },
+            headerTintColor: '#fff',
+            headerTitleStyle: { fontWeight: '700' as const },
+          }}
+        />
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Error: {error}</Text>
+        </View>
+      </View>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -70,7 +122,7 @@ export default function CartScreen() {
                 <View style={styles.quantityControl}>
                   <Pressable
                     onPress={() =>
-                      updateQuantity(item.product.id, item.quantity - 1)
+                      handleUpdateQuantity(item.product.id, item.quantity - 1)
                     }
                     style={styles.quantityButton}
                   >
@@ -79,7 +131,7 @@ export default function CartScreen() {
                   <Text style={styles.quantityText}>{item.quantity}</Text>
                   <Pressable
                     onPress={() =>
-                      updateQuantity(item.product.id, item.quantity + 1)
+                      handleUpdateQuantity(item.product.id, item.quantity + 1)
                     }
                     style={styles.quantityButton}
                   >
@@ -87,7 +139,7 @@ export default function CartScreen() {
                   </Pressable>
                 </View>
                 <Pressable
-                  onPress={() => removeFromCart(item.product.id)}
+                  onPress={() => handleRemoveFromCart(item.product.id)}
                   style={styles.deleteButton}
                 >
                   <Trash2 size={18} color="#dc3545" />
@@ -138,6 +190,27 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     fontSize: 16,
     color: '#6c757d',
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  loadingText: {
+    fontSize: 18,
+    color: '#6c757d',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#dc3545',
     textAlign: 'center',
   },
   itemsContainer: {

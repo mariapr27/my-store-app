@@ -1,6 +1,6 @@
 export type ProductCategory = 'cleaning' | 'organic';
 
-export interface Product {
+export interface Product { 
   id: string;
   name: string;
   description: string;
@@ -11,19 +11,29 @@ export interface Product {
   createdAt?: Date;
 }
 
-export interface CartItem {
+export interface CartItem { 
   product: Product;
+  //productId: string;
   quantity: number;
 }
 
-export interface CustomerInfo {
+export interface CartDocument {
+  userId: string;
+  items: CartItem[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CustomerInfo { // Extra variables para los detalles adicionales de la factura
+  [x: string]: any;
   fullName: string;
-  email: string;
+  cedula: string;
+  email: string;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
   phone: string;
   address: string;
 }
 
-export interface Order {
+export interface Order { // Extra variables para el detalle de la factura
   orderNumber: string;
   date: string;
   customer: CustomerInfo;
@@ -31,3 +41,12 @@ export interface Order {
   total: number;
   paymentMethod: string;
 }
+
+// export interface RegistroPago {
+//   fullName: string;
+//   cedula: string;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+//   phone: string;
+//   numeroComprobante: number;
+//   referencia: number;
+//   fechaPago: Date;
+// }

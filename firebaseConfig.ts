@@ -10,7 +10,7 @@ import { Platform } from 'react-native';
 
 
 
-// Configuración de Firebase (reemplaza con tus datos)
+// Configuración de Firebase 
 const firebaseConfig = {
     apiKey: "AIzaSyDZq-BkvWpLQB6-KH-_SnX4lIwZsm2uxrQ",
     authDomain: "miyayita-store.firebaseapp.com",
