@@ -12,6 +12,7 @@ import {
   StyleSheet,
   Text,
   View,
+  Alert,
 } from 'react-native';
 
 const CategoryButton = ({
@@ -45,22 +46,32 @@ const ProductCard = ({ product }: { product: Product }) => {
   const [showAdded, setShowAdded] = useState(false);
   const scaleAnim = useState(new Animated.Value(1))[0];
 
-  const handleAddToCart = () => {
-    addToCart(product);
-    setShowAdded(true);
+  const handleAddToCart = async () => {
+    try {
+      await addToCart(product);
+      setShowAdded(true);
 
-    Animated.sequence([
-      Animated.spring(scaleAnim, {
-        toValue: 0.95,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-      }),
-    ]).start();
+      Animated.sequence([
+        Animated.spring(scaleAnim, {
+          toValue: 0.95,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+        }),
+      ]).start();
 
-    setTimeout(() => setShowAdded(false), 2000);
+      setTimeout(() => setShowAdded(false), 2000);
+    } catch (err: any) {
+      console.error('No se pudo agregar al carrito:', err);
+      // Si falla por no estar autenticado, sugerimos iniciar sesión
+      if (err?.message?.toLowerCase?.().includes('no autenticado') || err === 'Usuario no autenticado') {
+        Alert.alert('Inicia sesión', 'Debes iniciar sesión para sincronizar tu carrito en la nube. Se guardará localmente.');
+      } else {
+        Alert.alert('Error', 'No se pudo agregar el producto al carrito. Intenta nuevamente.');
+      }
+    }
   };
 
   return (

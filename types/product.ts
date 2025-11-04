@@ -31,6 +31,9 @@ export interface CustomerInfo { // Extra variables para los detalles adicionales
   email: string;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
   phone: string;
   address: string;
+  fechaPago: string; 
+  comprobante: string;
+  bancoEmisor: string;
 }
 
 export interface Order { // Extra variables para el detalle de la factura
@@ -40,6 +43,10 @@ export interface Order { // Extra variables para el detalle de la factura
   items: CartItem[];
   total: number;
   paymentMethod: string;
+  fechaPago: string; 
+  comprobante: string;
+  bancoEmisor: string;
+  
 }
 
 // export interface RegistroPago {

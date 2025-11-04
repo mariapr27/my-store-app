@@ -1,5 +1,6 @@
 import createContextHook from '@nkzw/create-context-hook';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   doc,
   getDoc,
@@ -17,15 +18,32 @@ export const [CartProvider, useCart] = createContextHook(() => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Si no hay usuario autenticado, cargamos carrito local (guest) desde AsyncStorage
     if (!auth.currentUser) {
-      setItems([]);
-      setIsLoading(false);
+      (async () => {
+        try {
+          const raw = await AsyncStorage.getItem('guest_cart');
+          if (raw) {
+            const data = JSON.parse(raw) as { items: CartItem[] };
+            setItems(data.items || []);
+          } else {
+            setItems([]);
+          }
+        } catch (err) {
+          console.error('Error cargando carrito local:', err);
+          setItems([]);
+        } finally {
+          setIsLoading(false);
+        }
+      })();
+
       return;
     }
 
     const cartRef = doc(db, 'carts', auth.currentUser.uid);
-    
-    const unsubscribe = onSnapshot(cartRef, 
+
+    const unsubscribe = onSnapshot(
+      cartRef,
       (snapshot) => {
         if (snapshot.exists()) {
           const cartData = snapshot.data() as CartDocument;
@@ -47,33 +65,42 @@ export const [CartProvider, useCart] = createContextHook(() => {
   }, []);
 
   const saveCartToFirestore = useCallback(async (newItems: CartItem[]) => {
-    if (!auth.currentUser) {
-      throw new Error('Usuario no autenticado');
-    }
+    // Si hay usuario autenticado, guardamos en Firestore
+    if (auth.currentUser) {
+      try {
+        const cartRef = doc(db, 'carts', auth.currentUser.uid);
+        const cartData: Omit<CartDocument, 'userId'> = {
+          items: newItems,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
 
-    try {
-      const cartRef = doc(db, 'carts', auth.currentUser.uid);
-      const cartData: Omit<CartDocument, 'userId'> = {
-        items: newItems,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      await setDoc(cartRef, {
-        ...cartData,
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
-    } catch (error) {
-      console.error('Error guardando carrito:', error);
-      throw error;
+        await setDoc(
+          cartRef,
+          {
+            ...cartData,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      } catch (error) {
+        console.error('Error guardando carrito en Firestore:', error);
+        throw error;
+      }
+    } else {
+      // Si no hay usuario, guardamos localmente en AsyncStorage (guest)
+      try {
+        await AsyncStorage.setItem('guest_cart', JSON.stringify({ items: newItems }));
+        // Actualizar estado local inmediatamente
+        setItems(newItems);
+      } catch (err) {
+        console.error('Error guardando carrito local:', err);
+        throw err;
+      }
     }
   }, []);
 
   const addToCart = useCallback(async (product: Product) => {
-    if (!auth.currentUser) {
-      throw new Error('Usuario no autenticado');
-    }
-
     try {
       const newItems = [...items];
       const existingItemIndex = newItems.findIndex(
@@ -83,7 +110,7 @@ export const [CartProvider, useCart] = createContextHook(() => {
       if (existingItemIndex >= 0) {
         newItems[existingItemIndex] = {
           ...newItems[existingItemIndex],
-          quantity: newItems[existingItemIndex].quantity + 1
+          quantity: newItems[existingItemIndex].quantity + 1,
         };
       } else {
         newItems.push({ product, quantity: 1 });
@@ -97,10 +124,6 @@ export const [CartProvider, useCart] = createContextHook(() => {
   }, [items, saveCartToFirestore]);
 
   const removeFromCart = useCallback(async (productId: string) => {
-    if (!auth.currentUser) {
-      throw new Error('Usuario no autenticado');
-    }
-
     try {
       const newItems = items.filter((item) => item.product.id !== productId);
       await saveCartToFirestore(newItems);
@@ -111,10 +134,6 @@ export const [CartProvider, useCart] = createContextHook(() => {
   }, [items, saveCartToFirestore]);
 
   const updateQuantity = useCallback(async (productId: string, quantity: number) => {
-    if (!auth.currentUser) {
-      throw new Error('Usuario no autenticado');
-    }
-
     try {
       if (quantity <= 0) {
         await removeFromCart(productId);
@@ -132,12 +151,12 @@ export const [CartProvider, useCart] = createContextHook(() => {
   }, [items, removeFromCart, saveCartToFirestore]);
 
   const clearCart = useCallback(async () => {
-    if (!auth.currentUser) {
-      throw new Error('Usuario no autenticado');
-    }
-
     try {
       await saveCartToFirestore([]);
+      // Si es guest, también eliminamos la clave local
+      if (!auth.currentUser) {
+        await AsyncStorage.removeItem('guest_cart');
+      }
     } catch (error) {
       console.error('Error limpiando carrito:', error);
       throw error;

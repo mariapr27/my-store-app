@@ -14,6 +14,8 @@ import {
   View,
 } from 'react-native';
 
+
+
 const generateReceiptHTML = (order: Order): string => {
   const itemsHTML = order.items
     .map(
@@ -27,6 +29,31 @@ const generateReceiptHTML = (order: Order): string => {
   `
     )
     .join('');
+
+   // Generar HTML para información de pago si existe
+  const paymentInfoHTML = order.comprobante || order.fechaPago || order.bancoEmisor ? `
+    <h2 class="section-title">Información del Pago</h2>
+    <div class="info-section">
+      ${order.comprobante ? `
+        <div class="info-row">
+          <span class="info-label">Nº de Comprobante:</span>
+          <span class="info-value">${order.comprobante}</span>
+        </div>
+      ` : ''}
+      ${order.fechaPago ? `
+        <div class="info-row">
+          <span class="info-label">Fecha del Pago:</span>
+          <span class="info-value">${order.fechaPago}</span>
+        </div>
+      ` : ''}
+      ${order.bancoEmisor ? `
+        <div class="info-row">
+          <span class="info-label">Banco Emisor:</span>
+          <span class="info-value">${order.bancoEmisor}</span>
+        </div>
+      ` : ''}
+    </div>
+  ` : '';
 
   return `
     <!DOCTYPE html>
@@ -200,6 +227,7 @@ const generateReceiptHTML = (order: Order): string => {
           <span class="info-value">${order.paymentMethod}</span>
         </div>
       </div>
+      ${paymentInfoHTML}
 
       <div class="total-section">
         <div class="total-label">Total Pagado</div>
@@ -218,7 +246,7 @@ const generateReceiptHTML = (order: Order): string => {
 export default function ReceiptScreen() {
   const params = useLocalSearchParams();
   const [isGenerating, setIsGenerating] = useState(false);
-
+  
   const order: Order = JSON.parse(params.orderData as string);
 
   const handleDownloadPDF = async () => {
@@ -314,10 +342,38 @@ export default function ReceiptScreen() {
           </View>
 
           <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Información del Pago</Text>
+
             <View style={styles.paymentRow}>
               <Text style={styles.paymentLabel}>Método de Pago:</Text>
               <Text style={styles.paymentValue}>{order.paymentMethod}</Text>
             </View>
+
+            
+            {(order.comprobante || order.fechaPago || order.bancoEmisor) && (
+              <>
+                {order.comprobante && (
+                  <View style={styles.paymentRow}>
+                    <Text style={styles.paymentLabel}>Nº de Comprobante:</Text>
+                    <Text style={styles.paymentValue}>{order.comprobante}</Text>
+                  </View>
+                )}
+                
+                {order.fechaPago && (
+                  <View style={styles.paymentRow}>
+                    <Text style={styles.paymentLabel}>Fecha del Pago:</Text>
+                    <Text style={styles.paymentValue}>{order.fechaPago}</Text>
+                  </View>
+                )}
+                
+                {order.bancoEmisor && (
+                  <View style={styles.paymentRow}>
+                    <Text style={styles.paymentLabel}>Banco Emisor:</Text>
+                    <Text style={styles.paymentValue}>{order.bancoEmisor}</Text>
+                  </View>
+                )}
+              </>
+            )}
           </View>
 
           <View style={styles.totalSection}>
@@ -441,15 +497,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
   },
   paymentLabel: {
     fontSize: 15,
     fontWeight: '600' as const,
     color: '#495057',
+    flex: 1,
   },
   paymentValue: {
     fontSize: 15,
     color: '#212529',
+    flex: 1,
+    textAlign: 'right',
   },
   totalSection: {
     paddingTop: 16,
@@ -503,4 +563,5 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700' as const,
   },
+
 });

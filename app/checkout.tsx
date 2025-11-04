@@ -2,6 +2,8 @@ import { useCart } from '../contexts/CartContext';
 import { CustomerInfo } from '../types/product';
 import { router, Stack } from 'expo-router';
 import { CreditCard } from 'lucide-react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import Modal from 'react-native-modal';
 import React, { useState } from 'react';
 import {
   Alert,
@@ -10,7 +12,9 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
+  Platform,
 } from 'react-native';
 
 export default function CheckoutScreen() {
@@ -21,6 +25,9 @@ export default function CheckoutScreen() {
     email: '',
     phone: '',
     address: '',
+    fechaPago: '',
+    comprobante: '',
+    bancoEmisor: '',
   });
   const [paymentMethod, setPaymentMethod] = useState('transferencia');
   const [errors, setErrors] = useState<Partial<CustomerInfo>>({});
@@ -39,6 +46,7 @@ export default function CheckoutScreen() {
     rif: 'J-12345678-9'
   };
 
+  // Validacion en formulario
   const validateForm = (): boolean => {
     const newErrors: Partial<CustomerInfo> = {};
 
@@ -84,7 +92,11 @@ export default function CheckoutScreen() {
       total: getTotal(),
       paymentMethod:
         paymentMethod === 'transferencia' ? 'Transferencia' : 'Pago Movil',
+      comprobante: customerInfo.comprobante,
+      fechaPago: customerInfo.fechaPago,
+      bancoEmisor: customerInfo.bancoEmisor,
     };
+     console.log('Enviando orderData:', orderData); 
 
     router.push({
       pathname: '/receipt',
@@ -93,8 +105,176 @@ export default function CheckoutScreen() {
 
     clearCart();
   };
+// Función helper para obtener la fecha actual sin problemas de timezone
+  const getTodayWithoutTime = (): Date => {
+  const today = new Date();
+  // Resetear la hora a mediodía para evitar desfases
+  return new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12, 0, 0);
+};
+  // fecha de pago para pago movil
+  const DatePickerComponent = ({
+    value,
+    onDateChange,
+    maximumDate,
+    error
+  }: {
+    value: string;
+    onDateChange: (dateString: string) => void;
+    maximumDate?: Date;
+    error?: string;
+  }) => {
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDateState, setSelectedDateState] = useState<Date>(
+    getTodayWithoutTime()
+  );
 
+  const formatDateToString = (date: Date): string => { //Convierte un objeto Date a string en formato "dd/mm/yyyy"
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  const normalizeToNoon = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+  };
+
+  const parseDateString = (dateString: string): Date => {  // Convierte un string en formato "dd/mm/yyyy" a objeto Date
+    if (!dateString) return getTodayWithoutTime(); // ← Usar la función helper
+    const [day, month, year] = dateString.split('/').map(Number);
+    return normalizeToNoon(new Date(year, month - 1, day));
+  };
+
+
+  const handleDateChange = (event: any, pickedDate?: Date) => {
+    // Normalize picked date to local noon to avoid timezone shifts
+    if (pickedDate) {
+      const normalized = normalizeToNoon(pickedDate);
+      setSelectedDateState(normalized);
+      const dateString = formatDateToString(normalized);
+      onDateChange(dateString);
+    }
+
+    // En Android cerramos inmediatamente
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
+
+    // En iOS el evento puede venir con type 'set' o 'dismissed'
+    if (Platform.OS === 'ios') {
+      if (event?.type === 'set' || event?.type === 'dismissed') {
+        setShowDatePicker(false);
+      }
+    }
+  };
+   // Render para web
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.inputGroup}>
+        <input
+          type="date"
+          style={{
+            padding: '10px',
+            borderRadius: '8px',
+            border: '1px solid #ccc',
+            backgroundColor: '#f9f9f9',
+            fontSize: '16px',
+            color: '#333',
+            outline: 'none'
+          }}
+          value={value ? (() => {
+            const d = parseDateString(value);
+            const yyyy = d.getFullYear();
+            const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+            const dd = d.getDate().toString().padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+          })() : ''}
+          onChange={(e) => {
+            if (e.target.value) {
+              const [yyyy, mm, dd] = e.target.value.split('-').map(Number);
+              const local = normalizeToNoon(new Date(yyyy, mm - 1, dd));
+              onDateChange(formatDateToString(local));
+            }
+          }}
+          max={
+            maximumDate
+              ? (() => {
+                  const d = maximumDate;
+                  const yyyy = d.getFullYear();
+                  const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+                  const dd = d.getDate().toString().padStart(2, '0');
+                  return `${yyyy}-${mm}-${dd}`;
+                })()
+              : undefined
+          }
+        />
+        {error && (
+          <Text style={styles.errorText}>{error}</Text>
+        )}
+      </View>
+    );
+  }
+
+  // Render para móvil (iOS/Android)
   return (
+    <View style={styles.inputGroup}>
+      <View style={[styles.pickerContainer, error && styles.inputError]}>
+        <TouchableOpacity
+          style={[styles.dateInput]}
+          onPress={() => {
+            // Al abrir el selector inicializamos la fecha mostrada al valor actual o hoy
+            setSelectedDateState(value ? parseDateString(value) : getTodayWithoutTime());
+            setShowDatePicker(true);
+          }}
+        >
+          <Text style={value ? styles.dateText : styles.placeholderText}>
+            {value || 'DD/MM/AAAA'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={selectedDateState}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={handleDateChange}
+          maximumDate={maximumDate}
+          locale="es-ES"
+        />
+      )}
+      
+      {error && (
+        <Text style={styles.errorText}>{error}</Text>
+      )}
+    </View>
+  );
+};
+const [showBancoModal, setShowBancoModal] = useState(false);
+    // Define la interfaz para los bancos
+    interface Banco {
+      id: string;
+      nombre: string;
+    }
+
+    // Lista de bancos (puedes expandirla)
+    const BANCOS: Banco[] = [
+      { id: '1', nombre: 'Banco de Chile' },
+      { id: '2', nombre: 'Banco Estado' },
+      { id: '3', nombre: 'Banco Santander' },
+      { id: '4', nombre: 'Banco BCI' },
+      { id: '5', nombre: 'Banco Itaú' },
+      { id: '6', nombre: 'Scotiabank' },
+      { id: '7', nombre: 'Banco Security' },
+      { id: '8', nombre: 'Banco Falabella' },
+      { id: '9', nombre: 'Banco Ripley' },
+      { id: '10', nombre: 'Banco Internacional' },
+      { id: '11', nombre: 'BBVA' },
+      { id: '12', nombre: 'HSBC' },
+      { id: '0', nombre: 'Otro' },
+    ];
+
+    return (
     <View style={styles.container}>
       <Stack.Screen
         options={{
@@ -304,6 +484,80 @@ export default function CheckoutScreen() {
         )}
 
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Información del Pago</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Nº de Comprobante</Text>
+            <TextInput
+              style={[styles.input, errors.comprobante && styles.inputError]}
+              value={customerInfo.comprobante}
+              onChangeText={(text) =>
+                setCustomerInfo({ ...customerInfo, comprobante: text })
+              }
+              placeholder="Ingrese los ultimos 4 dígitos"
+              placeholderTextColor="#adb5bd"
+            />
+            {errors.comprobante && (
+              <Text style={styles.errorText}>{errors.comprobante}</Text>
+            )}
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Fecha del Pago</Text>
+            
+            {/* Botón/Input para abrir el selector */}
+            <DatePickerComponent
+            value={customerInfo.fechaPago || ''}
+            onDateChange={(dateString) => 
+              setCustomerInfo({ ...customerInfo, fechaPago: dateString })
+            }  maximumDate={new Date(new Date().setHours(23, 59, 59, 999))}
+              />
+            
+            {errors.fechaPago && (
+              <Text style={styles.errorText}>{errors.fechaPago}</Text>
+            )}
+          </View>
+        
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Banco Emisor</Text>
+          <TouchableOpacity
+              style={[styles.input, errors.bancoEmisor && styles.inputError]}
+              onPress={() => setShowBancoModal(true)}
+            >
+              <Text style={customerInfo.bancoEmisor ? styles.dateText : styles.placeholderText}>
+                {customerInfo.bancoEmisor || 'Seleccione un banco...'}
+              </Text>
+            </TouchableOpacity>
+            <Modal
+              isVisible={showBancoModal}
+              onBackdropPress={() => setShowBancoModal(false)}
+              style={{ justifyContent: 'flex-end', margin: 0 }}
+            >
+              <View style={styles.modalContainer}>
+                <Text style={styles.modalTitle}>Selecciona un banco</Text>
+                <ScrollView style={{ maxHeight: 320 }}>
+                  {BANCOS.map((banco) => (
+                    <TouchableOpacity
+                      key={banco.id}
+                      style={styles.modalItem}
+                      onPress={() => {
+                        setCustomerInfo({ ...customerInfo, bancoEmisor: banco.nombre });
+                        setShowBancoModal(false);
+                      }}
+                    >
+                      <Text style={styles.modalItemText}>{banco.nombre}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </Modal>
+          {errors.bancoEmisor && (
+            <Text style={styles.errorText}>{errors.bancoEmisor}</Text>
+          )}
+        </View>
+      </View>
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Resumen del Pedido</Text>
           <View style={styles.summaryContainer}>
             {items.map((item) => (
@@ -386,12 +640,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#212529',
   },
+  dateInput: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 48,
+    justifyContent: 'center',
+  },
   inputError: {
     borderColor: '#dc3545',
   },
   textArea: {
     minHeight: 80,
     textAlignVertical: 'top',
+  },
+  // Estilos añadidos para el Picker y selector de fecha
+  pickerContainer: {
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 48,
+    color: '#212529',
+  }, 
+  dateText: {
+    color: '#212529',
+    fontSize: 16,
+  },
+  placeholderText: {
+    color: '#adb5bd',
+    fontSize: 16,
   },
   errorText: {
     color: '#dc3545',
@@ -537,4 +817,41 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     lineHeight: 18,
   },
+  pickerPlaceholder: {
+  color: '#adb5bd',
+  fontSize: 16,
+},
+  pickerItem: {
+    fontSize: 16,
+    color: '#212529',
+  },
+  modalContainer: {
+  backgroundColor: '#fff',
+  borderTopLeftRadius: 16,
+  borderTopRightRadius: 16,
+  padding: 20,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.1,
+  shadowRadius: 8,
+  elevation: 3,
+},
+modalTitle: {
+  fontSize: 18,
+  fontWeight: '700',
+  color: '#212529',
+  marginBottom: 16,
+  textAlign: 'center',
+},
+modalItem: {
+  paddingVertical: 14,
+  borderBottomWidth: 1,
+  borderBottomColor: '#dee2e6',
+},
+modalItemText: {
+  fontSize: 16,
+  color: '#212529',
+  textAlign: 'center',
+},
 });
+
