@@ -5,6 +5,7 @@ import { CreditCard } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Modal from 'react-native-modal';
 import React, { useState } from 'react';
+import { saveOrderToFirestore, saveCustomerInfo } from '../services/firestoreService';
 import {
   Alert,
   Pressable,
@@ -75,12 +76,12 @@ export default function CheckoutScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleConfirmPurchase = () => {
+  const handleConfirmPurchase = async () => {
     if (!validateForm()) {
       Alert.alert('Error', 'Por favor completa todos los campos correctamente');
       return;
     }
-
+    try {
     const orderNumber = `ORD-${Date.now()}`;
     const orderDate = new Date().toISOString();
 
@@ -90,21 +91,39 @@ export default function CheckoutScreen() {
       customer: customerInfo,
       items,
       total: getTotal(),
-      paymentMethod:
-        paymentMethod === 'transferencia' ? 'Transferencia' : 'Pago Movil',
+      paymentMethod: paymentMethod === 'transferencia' ? 'Transferencia' : 'Pago Movil',
       comprobante: customerInfo.comprobante,
       fechaPago: customerInfo.fechaPago,
       bancoEmisor: customerInfo.bancoEmisor,
     };
-     console.log('Enviando orderData:', orderData); 
+
+    const orderId = await saveOrderToFirestore(orderData); //GUARDAR EN FIRESTORE
+    
+    //Guardar información del cliente por separado
+    await saveCustomerInfo(customerInfo);
+
+    console.log('Orden guardada en Firebase con ID:', orderId);
 
     router.push({
       pathname: '/receipt',
-      params: { orderData: JSON.stringify(orderData) },
+      params: { 
+        orderData: JSON.stringify({
+          ...orderData,
+          firebaseId: orderId // Incluir el ID de Firebase
+        })
+      },
     });
-
     clearCart();
-  };
+  } catch (error) {
+    console.error('Error al procesar la orden:', error);
+    Alert.alert(
+      'Error', 
+      'Hubo un problema al procesar tu orden. Por favor intenta nuevamente.'
+    );
+  }
+};
+
+
 // Función helper para obtener la fecha actual sin problemas de timezone
   const getTodayWithoutTime = (): Date => {
   const today = new Date();
@@ -259,20 +278,23 @@ const [showBancoModal, setShowBancoModal] = useState(false);
 
     // Lista de bancos (puedes expandirla)
     const BANCOS: Banco[] = [
-      { id: '1', nombre: 'Banco de Chile' },
-      { id: '2', nombre: 'Banco Estado' },
-      { id: '3', nombre: 'Banco Santander' },
-      { id: '4', nombre: 'Banco BCI' },
-      { id: '5', nombre: 'Banco Itaú' },
-      { id: '6', nombre: 'Scotiabank' },
-      { id: '7', nombre: 'Banco Security' },
-      { id: '8', nombre: 'Banco Falabella' },
-      { id: '9', nombre: 'Banco Ripley' },
-      { id: '10', nombre: 'Banco Internacional' },
-      { id: '11', nombre: 'BBVA' },
-      { id: '12', nombre: 'HSBC' },
+      { id: '1', nombre: 'Banco de Venezuela' },
+      { id: '2', nombre: 'Banco Mercantil' },
+      { id: '3', nombre: 'Banco Banesco' },
+      { id: '4', nombre: 'Banco BNC' },
+      { id: '5', nombre: 'Banco Bancamiga' },
+      { id: '6', nombre: 'Banco Provincial' },
+      { id: '7', nombre: 'Banco del Tesoro' },
+      { id: '8', nombre: 'Banco del Caribe' },
+      { id: '9', nombre: 'Banco Exterior' },
+      { id: '10', nombre: 'Banco BFC' },
+      { id: '11', nombre: 'R4 Banco' },
+      { id: '12', nombre: 'Sofitasa' },
+      { id: '13', nombre: 'Banco Activo' },
+      { id: '14', nombre: 'Banplus' },
       { id: '0', nombre: 'Otro' },
     ];
+
 
     return (
     <View style={styles.container}>
@@ -319,6 +341,7 @@ const [showBancoModal, setShowBancoModal] = useState(false);
               placeholder="12345678"
               placeholderTextColor="#adb5bd"
               keyboardType="phone-pad"
+              maxLength={8}
             />
             {errors.cedula && (
               <Text style={styles.errorText}>{errors.cedula}</Text>
@@ -348,12 +371,17 @@ const [showBancoModal, setShowBancoModal] = useState(false);
             <TextInput
               style={[styles.input, errors.phone && styles.inputError]}
               value={customerInfo.phone}
-              onChangeText={(text) =>
-                setCustomerInfo({ ...customerInfo, phone: text })
-              }
-              placeholder="+58 2345678900"
+              onChangeText={(text) => {
+                // Solo permite números
+                const filteredText = text.replace(/[^\d]/g, '');
+                //const filteredText = text.replace(/[^\d+\s]/g, '');    //Solo permite números, +, y espacios
+                setCustomerInfo({ ...customerInfo, phone: filteredText });
+                }}
+              placeholder="0234-5678900"
               placeholderTextColor="#adb5bd"
-              keyboardType="phone-pad"
+              keyboardType="numeric"
+              maxLength={11} // Longitud máxima 
+              
             />
             {errors.phone && (
               <Text style={styles.errorText}>{errors.phone}</Text>
@@ -375,7 +403,7 @@ const [showBancoModal, setShowBancoModal] = useState(false);
               placeholder="Calle, número, ciudad, código postal"
               placeholderTextColor="#adb5bd"
               multiline
-              numberOfLines={3}
+              maxLength={20} 
             />
             {errors.address && (
               <Text style={styles.errorText}>{errors.address}</Text>
@@ -496,6 +524,8 @@ const [showBancoModal, setShowBancoModal] = useState(false);
               }
               placeholder="Ingrese los ultimos 4 dígitos"
               placeholderTextColor="#adb5bd"
+              keyboardType='number-pad'
+              maxLength={4} 
             />
             {errors.comprobante && (
               <Text style={styles.errorText}>{errors.comprobante}</Text>
