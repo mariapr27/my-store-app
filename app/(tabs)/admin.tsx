@@ -1,10 +1,11 @@
 import { useProducts } from '../../contexts/Productscontext';
 import { Product, ProductCategory } from '../../types/product';
 import { Stack } from 'expo-router';
-import { Edit2, LogOut, Plus, Trash2 } from 'lucide-react-native';
-import React, { useState, useEffect } from 'react';
+import { Edit2, LogOut, Plus, Trash2, Upload, X } from 'lucide-react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword, User } from 'firebase/auth';
 import { auth } from '../../firebaseConfig';
+import * as ImagePicker from 'expo-image-picker';
 import {
   Alert,
   Image,
@@ -16,7 +17,12 @@ import {
   TouchableOpacity,
   View,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
+import {
+  uploadFileToFirebaseStorage,
+  uploadUriToFirebaseStorage,
+} from '../../services/firebaseStorageService';
 
 const ADMIN_EMAIL = 'miyayitastore@gmail.com'; //  email de admin
 
@@ -40,6 +46,12 @@ export default function AdminScreen() {
     image: '',
     category: 'cleaning' as ProductCategory,
   });
+  const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [selectedWebFile, setSelectedWebFile] = useState<File | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -102,6 +114,28 @@ export default function AdminScreen() {
     );
   };
 
+  const clearSelectedImage = useCallback(() => {
+    if (objectUrlRef.current && typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+    setSelectedImagePreview(null);
+    setSelectedImageUri(null);
+    setSelectedWebFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current && typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+    };
+  }, []);
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -112,6 +146,7 @@ export default function AdminScreen() {
       category: 'cleaning',
     });
     setEditingProduct(null);
+    clearSelectedImage();
   };
 
   const openAddModal = () => {
@@ -120,6 +155,7 @@ export default function AdminScreen() {
   };
 
   const openEditModal = (product: Product) => {
+    clearSelectedImage();
     setEditingProduct(product);
     setFormData({
       name: product.name,
@@ -132,7 +168,59 @@ export default function AdminScreen() {
     setModalVisible(true);
   };
 
-  const handleSave = () => {
+  const handleRemoveSelectedImage = () => {
+    clearSelectedImage();
+  };
+
+  const handleSelectImage = async () => {
+    if (Platform.OS === 'web') {
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
+      }
+      return;
+    }
+
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permisos requeridos', 'Se necesitan permisos para acceder a la galería');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const asset = result.assets[0];
+      setSelectedImageUri(asset.uri);
+      setSelectedWebFile(null);
+      setSelectedImagePreview(asset.uri);
+    }
+  };
+
+  const handleWebFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (objectUrlRef.current && typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
+        URL.revokeObjectURL(objectUrlRef.current);
+      }
+
+      const previewUrl =
+        typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function'
+          ? URL.createObjectURL(file)
+          : '';
+
+      objectUrlRef.current = previewUrl;
+      setSelectedImagePreview(previewUrl || null);
+      setSelectedWebFile(file);
+      setSelectedImageUri(null);
+    }
+  };
+
+  const handleSave = async () => {
     if (!formData.name || !formData.price) {
       Alert.alert('Error', 'Por favor completa todos los campos requeridos');
       return;
@@ -144,22 +232,44 @@ export default function AdminScreen() {
       return;
     }
 
+    let imageUrl = formData.image;
+
+    try {
+      if (selectedWebFile) {
+        setIsUploadingImage(true);
+        imageUrl = await uploadFileToFirebaseStorage(selectedWebFile, 'products');
+      } else if (selectedImageUri) {
+        setIsUploadingImage(true);
+        imageUrl = await uploadUriToFirebaseStorage(selectedImageUri, 'products');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error?.message || 'No se pudo subir la imagen');
+      setIsUploadingImage(false);
+      return;
+    } finally {
+      setIsUploadingImage(false);
+    }
+
+    if (!imageUrl) {
+      imageUrl = 'https://via.placeholder.com/400';
+    }
+
     if (editingProduct) {
-      updateProduct(editingProduct.id, {
+      await updateProduct(editingProduct.id, {
         name: formData.name,
         description: formData.description,
         price,
         stock: parseInt(formData.stock),
-        image: formData.image || 'https://via.placeholder.com/400',
+        image: imageUrl,
         category: formData.category,
       });
     } else {
-      addProduct({
+      await addProduct({
         name: formData.name,
         description: formData.description,
         price,
         stock: parseInt(formData.stock),
-        image: formData.image || 'https://via.placeholder.com/400',
+        image: imageUrl,
         category: formData.category,
       });
     }
@@ -392,7 +502,50 @@ export default function AdminScreen() {
                 keyboardType="numeric"
               />
 
-              <Text style={styles.label}>URL de Imagen</Text>
+              <Text style={styles.label}>Imagen del Producto</Text>
+              {selectedImagePreview ? (
+                <View style={styles.imagePreviewContainer}>
+                  <Image source={{ uri: selectedImagePreview }} style={styles.imagePreview} />
+                  <TouchableOpacity style={styles.removeImageButton} onPress={handleRemoveSelectedImage}>
+                    <X size={18} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              ) : formData.image ? (
+                <View style={styles.currentImageContainer}>
+                  <Image source={{ uri: formData.image }} style={styles.imagePreview} />
+                  <Text style={styles.previewCaption}>Imagen actual</Text>
+                </View>
+              ) : null}
+
+              <TouchableOpacity
+                style={[styles.uploadButton, isUploadingImage && styles.uploadButtonDisabled]}
+                onPress={handleSelectImage}
+                disabled={isUploadingImage}
+              >
+                {isUploadingImage ? (
+                  <>
+                    <ActivityIndicator size="small" color="#fff" />
+                    <Text style={styles.uploadButtonText}>Subiendo...</Text>
+                  </>
+                ) : (
+                  <>
+                    <Upload size={20} color="#fff" />
+                    <Text style={styles.uploadButtonText}>Seleccionar desde el dispositivo</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              {Platform.OS === 'web' && (
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={handleWebFileSelect}
+                />
+              )}
+
+              <Text style={styles.helperText}>O ingresa una URL manualmente</Text>
               <TextInput
                 style={styles.input}
                 value={formData.image}
@@ -450,8 +603,16 @@ export default function AdminScreen() {
               >
                 <Text style={styles.cancelButtonText}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                <Text style={styles.saveButtonText}>Guardar</Text>
+              <TouchableOpacity
+                style={[styles.saveButton, isUploadingImage && styles.saveButtonDisabled]}
+                onPress={handleSave}
+                disabled={isUploadingImage}
+              >
+                {isUploadingImage ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Guardar</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -782,6 +943,63 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600' as const,
     color: '#fff',
+  },
+  saveButtonDisabled: {
+    opacity: 0.7,
+  },
+  imagePreviewContainer: {
+    marginTop: 12,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  currentImageContainer: {
+    marginTop: 12,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  imagePreview: {
+    width: 200,
+    height: 200,
+    borderRadius: 12,
+    backgroundColor: '#f1f3f5',
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 8,
+    right: '20%',
+    backgroundColor: '#dc3545',
+    borderRadius: 16,
+    padding: 6,
+  },
+  previewCaption: {
+    marginTop: 6,
+    fontSize: 12,
+    color: '#6c757d',
+    fontStyle: 'italic',
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2d6a4f',
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+    marginBottom: 12,
+  },
+  uploadButtonDisabled: {
+    opacity: 0.7,
+  },
+  uploadButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600' as const,
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#6c757d',
+    marginBottom: 6,
+    fontStyle: 'italic',
   },
   // Estilos para modal de eliminación
   deleteModalContent: {

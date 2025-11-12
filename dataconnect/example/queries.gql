@@ -1,0 +1,29 @@
+mutation CreateUser @auth(level: USER) {
+  user_insert(data: {
+    username_expr: "auth.uid",
+    email: "default@example.com",
+    createdAt_expr: "request.time"
+  })
+}
+
+query GetApplication @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+  applications {
+    id
+    title
+    description
+  }
+}
+
+mutation UpdateApplication($id: UUID!, $description: String) @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  application_update(key: {id: $id}, data: {
+    description: $description
+  })
+}
+
+query ListReviewsByUser($userId: UUID!) @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  reviews(where: {userId: {eq: $userId}}) {
+    id
+    rating
+    comment
+  }
+}

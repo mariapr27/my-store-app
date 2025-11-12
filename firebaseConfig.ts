@@ -15,7 +15,7 @@ const firebaseConfig = {
     apiKey: "AIzaSyDZq-BkvWpLQB6-KH-_SnX4lIwZsm2uxrQ",
     authDomain: "miyayita-store.firebaseapp.com",
     projectId: "miyayita-store",
-    storageBucket: "miyayita-store.firebasestorage.app",
+    storageBucket: "miyayita-store.appspot.com",
     messagingSenderId: "18919622963",
     appId: "1:18919622963:web:d62f7d385c795637cc1646",
     measurementId: "G-0RXKFYWB12"
