@@ -38,6 +38,7 @@ export const [ProductsProvider, useProducts] = createContextHook(() => {
             stock: data.stock,
             image: data.image,
             category: data.category as ProductCategory,
+            saleType: (data.saleType as any) || 'detal',
             createdAt: data.createdAt?.toDate(),
           });
         });

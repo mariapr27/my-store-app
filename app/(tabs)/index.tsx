@@ -113,11 +113,10 @@ export default function CatalogScreen() {
   const [selectedCategory, setSelectedCategory] = useState<
     ProductCategory | 'all'
   >('all');
-
-  const filteredProducts =
-    selectedCategory === 'all'
-      ? products
-      : products.filter((p) => p.category === selectedCategory);
+  const [saleFilter, setSaleFilter] = useState<'all' | 'detal' | 'mayor'>('all');
+  const filteredProducts = products
+    .filter((p) => (selectedCategory === 'all' ? true : p.category === selectedCategory))
+    .filter((p) => (saleFilter === 'all' ? true : (p.saleType || 'detal') === saleFilter));
 
   return (
     <View style={styles.container}>
@@ -137,13 +136,37 @@ export default function CatalogScreen() {
         </Text>
       </View>
 
-      <ScrollView
-        horizontal
-        centerContent
-        showsHorizontalScrollIndicator={false}
-        //style={styles.categoriesContainer}
-        style={[styles.categoriesContainer, {height: 290}]} // ← Aquí cambias la altura
-        contentContainerStyle={styles.categoriesContent}
+      {/* Botones adicionales encima de las categorías */}
+      <View style={styles.topButtonsContainer}>
+        <Pressable
+          onPress={() => { setSaleFilter('detal'); }}
+          style={({ pressed }) => [
+            styles.topButton,
+            saleFilter === 'detal' && styles.topButtonActive,
+            pressed && styles.topButtonPressed,
+          ]}
+        >
+          <Text style={[styles.topButtonText, saleFilter === 'detal' && styles.topButtonTextActive]}>Detal</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => { setSaleFilter('mayor'); }}
+          style={({ pressed }) => [
+            styles.topButton,
+            saleFilter === 'mayor' && styles.topButtonActive,
+            pressed && styles.topButtonPressed,
+          ]}
+        >
+          <Text style={[styles.topButtonText, saleFilter === 'mayor' && styles.topButtonTextActive]}>Mayor</Text>
+        </Pressable>
+      </View>
+
+      <View
+        // horizontal
+        // centerContent
+        //showsHorizontalScrollIndicator={false}
+        style={styles.categoriesContainer}
+        //style={[styles.categoriesContainer, {height: 290}]} // ← Aquí cambias la altura
       >
         <CategoryButton
           category="all"
@@ -163,7 +186,7 @@ export default function CatalogScreen() {
           isActive={selectedCategory === 'organic'}
           onPress={() => setSelectedCategory('organic')}
         />
-      </ScrollView>
+      </View>
 
       <ScrollView
         //style={styles.productsContainer}
@@ -202,28 +225,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
+    paddingVertical: 10,
+    paddingHorizontal: 50,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  categoriesContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 12,
-  },
-  // categoryButton: {
-  //   paddingHorizontal: 20,
-  //   paddingVertical: 10,
-  //   borderRadius: 18,
-  //   backgroundColor: '#f1f3f5',
-  //   marginRight: 8,
-  // },
+
   categoryButton: {
-      height: 40,
-      minWidth: 110,            // iguala ancho visual entre textos distintos
-      paddingHorizontal: 16,
-      borderRadius: 20,
-      backgroundColor: '#f1f3f5',
-      marginRight: 8,
-      alignItems: 'center',
-      justifyContent: 'center',
+    height: 50,
+    minWidth: 110,            // iguala ancho visual entre textos distintos
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#f1f3f5',
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
     },
   categoryButtonActive: {
     backgroundColor: '#2d6a4f',
@@ -304,5 +321,34 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: '600' as const,
+  },
+  topButtonsContainer: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  topButton: {
+    paddingHorizontal: 60,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: '#f1f3f5',
+    marginRight: 8,
+  },
+  topButtonPressed: {
+    opacity: 0.8,
+  },
+  topButtonActive: {
+    backgroundColor: '#2d6a4f',
+  },
+  topButtonTextActive: {
+    color: '#fff',
+  },
+  topButtonText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#495057',
   },
 });

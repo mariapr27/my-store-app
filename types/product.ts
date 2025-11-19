@@ -1,4 +1,5 @@
 export type ProductCategory = 'cleaning' | 'organic';
+export type SaleType = 'detal' | 'mayor';
 
 export interface Product { 
   id: string;
@@ -7,6 +8,7 @@ export interface Product {
   price: number;
   image: string;
   category: ProductCategory;
+  saleType?: SaleType; // 'detal' by default when not provided
   stock: number; 
   createdAt?: Date;
 }

@@ -2,7 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import type { Auth } from 'firebase/auth';
-import { getAnalytics } from "firebase/analytics";
+import { getAnalytics, isSupported  } from "firebase/analytics";
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -22,8 +22,11 @@ const firebaseConfig = {
   };
 
 // Inicializar Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+ const app = initializeApp(firebaseConfig);
+ const analytics = getAnalytics(app);
+
+
+
 
 // Configurar Auth con persistencia según plataforma
 let auth: Auth;

@@ -1,5 +1,5 @@
 import { useProducts } from '../../contexts/Productscontext';
-import { Product, ProductCategory } from '../../types/product';
+import { Product, ProductCategory, SaleType } from '../../types/product';
 import { Stack } from 'expo-router';
 import { Edit2, LogOut, Plus, Trash2, Upload, X } from 'lucide-react-native';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -38,13 +38,22 @@ export default function AdminScreen() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    description: string;
+    price: string;
+    stock: string;
+    image: string;
+    category: ProductCategory;
+    saleType: SaleType;
+  }>({
     name: '',
     description: '',
     price: '',
     stock: '',
     image: '',
     category: 'cleaning' as ProductCategory,
+    saleType: 'detal',
   });
   const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
@@ -144,6 +153,7 @@ export default function AdminScreen() {
       stock: '',
       image: '',
       category: 'cleaning',
+      saleType: 'detal',
     });
     setEditingProduct(null);
     clearSelectedImage();
@@ -164,6 +174,7 @@ export default function AdminScreen() {
       stock: product.stock.toString(), // Convert stock (number) to string
       image: product.image,
       category: product.category,
+      saleType: product.saleType || 'detal',
     });
     setModalVisible(true);
   };
@@ -262,6 +273,7 @@ export default function AdminScreen() {
         stock: parseInt(formData.stock),
         image: imageUrl,
         category: formData.category,
+        saleType: formData.saleType,
       });
     } else {
       await addProduct({
@@ -271,6 +283,7 @@ export default function AdminScreen() {
         stock: parseInt(formData.stock),
         image: imageUrl,
         category: formData.category,
+        saleType: formData.saleType,
       });
     }
 
@@ -588,6 +601,42 @@ export default function AdminScreen() {
                     ]}
                   >
                     Orgánico
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.label}>Tipo de venta</Text>
+              <View style={styles.categoryButtons}>
+                <TouchableOpacity
+                  style={[
+                    styles.categoryButton,
+                    formData.saleType === 'detal' && styles.categoryButtonActive,
+                  ]}
+                  onPress={() => setFormData({ ...formData, saleType: 'detal' })}
+                >
+                  <Text
+                    style={[
+                      styles.categoryButtonText,
+                      formData.saleType === 'detal' && styles.categoryButtonTextActive,
+                    ]}
+                  >
+                    Detal
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.categoryButton,
+                    formData.saleType === 'mayor' && styles.categoryButtonActive,
+                  ]}
+                  onPress={() => setFormData({ ...formData, saleType: 'mayor' })}
+                >
+                  <Text
+                    style={[
+                      styles.categoryButtonText,
+                      formData.saleType === 'mayor' && styles.categoryButtonTextActive,
+                    ]}
+                  >
+                    Mayor
                   </Text>
                 </TouchableOpacity>
               </View>
