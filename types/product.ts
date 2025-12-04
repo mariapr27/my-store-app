@@ -3,6 +3,7 @@ export type SaleType = 'detal' | 'mayor';
 
 export interface Product { 
   id: string;
+  firebaseId: string;
   name: string;
   description: string;
   price: number;

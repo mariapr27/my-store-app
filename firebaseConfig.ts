@@ -23,7 +23,18 @@ const firebaseConfig = {
 
 // Inicializar Firebase
  const app = initializeApp(firebaseConfig);
- const analytics = getAnalytics(app);
+ 
+ // Inicializar Analytics solo si está soportado (principalmente para web)
+ if (Platform.OS === 'web') {
+   isSupported().then((supported) => {
+     if (supported) {
+       getAnalytics(app);
+     }
+   }).catch(() => {
+     // Analytics no soportado, continuar sin él
+     console.log('Analytics no está disponible en este entorno');
+   });
+ }
 
 
 

@@ -17,12 +17,7 @@ import {
   TouchableOpacity,
   View,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
-import {
-  uploadFileToFirebaseStorage,
-  uploadUriToFirebaseStorage,
-} from '../../services/firebaseStorageService';
 
 const ADMIN_EMAIL = 'miyayitastore@gmail.com'; //  email de admin
 
@@ -56,9 +51,6 @@ export default function AdminScreen() {
     saleType: 'detal',
   });
   const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
-  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
-  const [selectedWebFile, setSelectedWebFile] = useState<File | null>(null);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
 
@@ -129,8 +121,6 @@ export default function AdminScreen() {
       objectUrlRef.current = null;
     }
     setSelectedImagePreview(null);
-    setSelectedImageUri(null);
-    setSelectedWebFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -183,6 +173,57 @@ export default function AdminScreen() {
     clearSelectedImage();
   };
 
+  // Función para convertir imagen a base64/data URL
+  const convertImageToDataUrl = async (uri: string, base64?: string): Promise<string> => {
+    if (Platform.OS === 'web') {
+      // En web, si ya es una data URL o blob URL, la retornamos
+      if (uri.startsWith('data:') || uri.startsWith('blob:')) {
+        // Si es blob URL, necesitamos convertirlo
+        if (uri.startsWith('blob:')) {
+          try {
+            const response = await fetch(uri);
+            const blob = await response.blob();
+            return new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+          } catch (error) {
+            console.error('Error convirtiendo blob a data URL:', error);
+            return uri;
+          }
+        }
+        return uri;
+      }
+      // Si es una URI local, intentamos leerla
+      try {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch (error) {
+        console.error('Error convirtiendo imagen a data URL:', error);
+        return uri;
+      }
+    } else {
+      // En móvil, si tenemos base64 del ImagePicker, lo usamos directamente
+      if (base64) {
+        // Determinar el tipo MIME basado en la extensión de la URI
+        const mimeType = uri.toLowerCase().endsWith('.png') ? 'image/png' : 
+                        uri.toLowerCase().endsWith('.jpg') || uri.toLowerCase().endsWith('.jpeg') ? 'image/jpeg' :
+                        'image/jpeg'; // Por defecto
+        return `data:${mimeType};base64,${base64}`;
+      }
+      // Si no hay base64, retornamos la URI original
+      return uri;
+    }
+  };
+
   const handleSelectImage = async () => {
     if (Platform.OS === 'web') {
       if (fileInputRef.current) {
@@ -202,17 +243,25 @@ export default function AdminScreen() {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
+      base64: true, // Necesitamos base64 para convertir a data URL
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const asset = result.assets[0];
-      setSelectedImageUri(asset.uri);
-      setSelectedWebFile(null);
       setSelectedImagePreview(asset.uri);
+      
+      // Convertir la imagen a data URL y guardarla en el campo
+      try {
+        const dataUrl = await convertImageToDataUrl(asset.uri, asset.base64 || undefined);
+        setFormData({ ...formData, image: dataUrl });
+      } catch (error) {
+        console.error('Error convirtiendo imagen:', error);
+        Alert.alert('Error', 'No se pudo procesar la imagen. Por favor ingresa la URL manualmente.');
+      }
     }
   };
 
-  const handleWebFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleWebFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       if (objectUrlRef.current && typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
@@ -226,8 +275,22 @@ export default function AdminScreen() {
 
       objectUrlRef.current = previewUrl;
       setSelectedImagePreview(previewUrl || null);
-      setSelectedWebFile(file);
-      setSelectedImageUri(null);
+      
+      // Convertir el archivo a data URL y guardarlo en el campo
+      try {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const dataUrl = reader.result as string;
+          setFormData({ ...formData, image: dataUrl });
+        };
+        reader.onerror = () => {
+          Alert.alert('Error', 'No se pudo procesar la imagen. Por favor ingresa la URL manualmente.');
+        };
+        reader.readAsDataURL(file);
+      } catch (error) {
+        console.error('Error convirtiendo archivo a data URL:', error);
+        Alert.alert('Error', 'No se pudo procesar la imagen. Por favor ingresa la URL manualmente.');
+      }
     }
   };
 
@@ -243,23 +306,8 @@ export default function AdminScreen() {
       return;
     }
 
-    let imageUrl = formData.image;
-
-    try {
-      if (selectedWebFile) {
-        setIsUploadingImage(true);
-        imageUrl = await uploadFileToFirebaseStorage(selectedWebFile, 'products');
-      } else if (selectedImageUri) {
-        setIsUploadingImage(true);
-        imageUrl = await uploadUriToFirebaseStorage(selectedImageUri, 'products');
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error?.message || 'No se pudo subir la imagen');
-      setIsUploadingImage(false);
-      return;
-    } finally {
-      setIsUploadingImage(false);
-    }
+    // Usar la URL ingresada manualmente
+    let imageUrl = formData.image.trim();
 
     if (!imageUrl) {
       imageUrl = 'https://via.placeholder.com/400';
@@ -277,6 +325,7 @@ export default function AdminScreen() {
       });
     } else {
       await addProduct({
+        firebaseId: '',
         name: formData.name,
         description: formData.description,
         price,
@@ -531,21 +580,11 @@ export default function AdminScreen() {
               ) : null}
 
               <TouchableOpacity
-                style={[styles.uploadButton, isUploadingImage && styles.uploadButtonDisabled]}
+                style={styles.uploadButton}
                 onPress={handleSelectImage}
-                disabled={isUploadingImage}
               >
-                {isUploadingImage ? (
-                  <>
-                    <ActivityIndicator size="small" color="#fff" />
-                    <Text style={styles.uploadButtonText}>Subiendo...</Text>
-                  </>
-                ) : (
-                  <>
-                    <Upload size={20} color="#fff" />
-                    <Text style={styles.uploadButtonText}>Seleccionar desde el dispositivo</Text>
-                  </>
-                )}
+                <Upload size={20} color="#fff" />
+                <Text style={styles.uploadButtonText}>Seleccionar imagen del dispositivo</Text>
               </TouchableOpacity>
 
               {Platform.OS === 'web' && (
@@ -558,7 +597,7 @@ export default function AdminScreen() {
                 />
               )}
 
-              <Text style={styles.helperText}>O ingresa una URL manualmente</Text>
+              <Text style={styles.helperText}>O ingresa la URL de la imagen manualmente</Text>
               <TextInput
                 style={styles.input}
                 value={formData.image}
@@ -653,15 +692,10 @@ export default function AdminScreen() {
                 <Text style={styles.cancelButtonText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.saveButton, isUploadingImage && styles.saveButtonDisabled]}
+                style={styles.saveButton}
                 onPress={handleSave}
-                disabled={isUploadingImage}
               >
-                {isUploadingImage ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.saveButtonText}>Guardar</Text>
-                )}
+                <Text style={styles.saveButtonText}>Guardar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -993,9 +1027,6 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#fff',
   },
-  saveButtonDisabled: {
-    opacity: 0.7,
-  },
   imagePreviewContainer: {
     marginTop: 12,
     marginBottom: 12,
@@ -1035,9 +1066,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 8,
     marginBottom: 12,
-  },
-  uploadButtonDisabled: {
-    opacity: 0.7,
   },
   uploadButtonText: {
     color: '#fff',

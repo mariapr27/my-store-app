@@ -130,9 +130,9 @@ export default function CatalogScreen() {
       />
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Productos Naturales</Text>
+        <Text style={styles.headerTitle}>Mi Yayita Tienda</Text>
         <Text style={styles.headerSubtitle}>
-          Limpieza ecológica y alimentos orgánicos
+          Limpieza eficaz y productos orgánicos
         </Text>
       </View>
 

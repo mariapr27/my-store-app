@@ -7,7 +7,10 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "build": "expo export"
+    "build": "expo export",
+    "dev:server": "tsx watch backend/src/server.ts",
+    "build:server": "tsc --project backend/tsconfig.json",
+    "start:server": "node backend/dist/server.js"
   },
   "dependencies": {
     "@nkzw/create-context-hook": "^1.1.0",
@@ -15,6 +18,8 @@
     "@react-native-community/datetimepicker": "^8.5.0",
     "@react-native-picker/picker": "^2.11.4",
     "@tanstack/react-query": "^5.90.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "expo": "~54.0.12",
     "expo-constants": "~18.0.9",
     "expo-image": "~3.0.8",
@@ -25,8 +30,10 @@
     "expo-sharing": "~14.0.7",
     "expo-splash-screen": "~31.0.10",
     "expo-status-bar": "~3.0.8",
+    "express": "^5.2.1",
     "firebase": "^10.12.0",
     "lucide-react-native": "^0.544.0",
+    "pg": "^8.16.3",
     "react": "19.1.0",
     "react-devtools": "^7.0.0",
     "react-dom": "19.1.0",
@@ -42,7 +49,11 @@
   },
   "devDependencies": {
     "@expo/cli": "^54.0.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/pg": "^8.15.6",
     "@types/react": "~19.1.0",
+    "tsx": "^4.21.0",
     "typescript": "~5.9.2"
   },
   "private": true
