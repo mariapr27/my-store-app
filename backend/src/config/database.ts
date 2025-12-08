@@ -8,7 +8,7 @@ dotenv.config();
 const dbConfig: PoolConfig = {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432', 10),
-  database: process.env.DB_NAME || 'my_store_db',
+  database: process.env.DB_NAME || 'miyayita_store',
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || '',
   ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,

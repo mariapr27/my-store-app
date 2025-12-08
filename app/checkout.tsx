@@ -5,7 +5,7 @@ import { CreditCard } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Modal from 'react-native-modal';
 import React, { useState } from 'react';
-import { saveOrderToFirestore, saveCustomerInfo } from '../services/firestoreService';
+import { createOrderInApi } from '../services/apiOrders';
 import {
   Alert,
   Pressable,
@@ -97,19 +97,17 @@ export default function CheckoutScreen() {
       bancoEmisor: customerInfo.bancoEmisor,
     };
 
-    const orderId = await saveOrderToFirestore(orderData); //GUARDAR EN FIRESTORE
-    
-    //Guardar información del cliente por separado
-    await saveCustomerInfo(customerInfo);
+    const createdOrder = await createOrderInApi(orderData); //GUARDAR EN POSTGRESQL
 
-    console.log('Orden guardada en Firebase con ID:', orderId);
+    console.log('Orden guardada en PostgreSQL con ID:', createdOrder.id);
 
     router.push({
       pathname: '/receipt',
       params: { 
         orderData: JSON.stringify({
           ...orderData,
-          firebaseId: orderId // Incluir el ID de Firebase
+          id: createdOrder.id, // Incluir el ID de PostgreSQL
+          firebaseId: createdOrder.id // Mantener compatibilidad con código existente
         })
       },
     });

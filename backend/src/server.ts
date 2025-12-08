@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { testConnection, closePool } from './config/database';
 import { corsMiddleware } from './middleware/cors';
 import productRoutes from './routes/productRoutes';
+import orderRoutes from './routes/orderRoutes';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -27,6 +28,7 @@ app.get('/health', async (req: Request, res: Response) => {
 
 // API Routes
 app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
 
 // Ruta raíz
 app.get('/', (req: Request, res: Response) => {
@@ -36,6 +38,7 @@ app.get('/', (req: Request, res: Response) => {
     endpoints: {
       health: '/health',
       products: '/api/products',
+      orders: '/api/orders',
     },
   });
 });

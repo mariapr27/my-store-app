@@ -40,6 +40,7 @@ export interface CustomerInfo { // Extra variables para los detalles adicionales
 }
 
 export interface Order { // Extra variables para el detalle de la factura
+  id?: string; // ID de PostgreSQL
   orderNumber: string;
   date: string;
   customer: CustomerInfo;
