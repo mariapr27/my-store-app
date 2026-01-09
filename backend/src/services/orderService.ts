@@ -1,6 +1,37 @@
 import { pool, query } from '../config/database';
 import { Order, OrderItem, CreateOrderInput, UpdateOrderInput } from '../types/database';
 
+// Helper para parsear fechaPago que viene como string "dd/mm/yyyy" desde el frontend
+const parseFechaPago = (value?: Date | string): Date | null => {
+  if (!value) return null;
+  
+  // Si ya es un Date, retornarlo
+  if (value instanceof Date) {
+    return isNaN(value.getTime()) ? null : value;
+  }
+  
+  // Si es string y viene en formato dd/mm/yyyy (por ejemplo "23/01/2025")
+  if (typeof value === 'string' && value.includes('/')) {
+    const parts = value.split('/');
+    if (parts.length === 3) {
+      const [dayStr, monthStr, yearStr] = parts;
+      const day = Number(dayStr);
+      const month = Number(monthStr);
+      const year = Number(yearStr);
+      
+      if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+        // Mes en JS es 0-based, así que restamos 1
+        const date = new Date(year, month - 1, day, 12, 0, 0);
+        return isNaN(date.getTime()) ? null : date;
+      }
+    }
+  }
+  
+  // Si no, intentar con el constructor normal de Date
+  const parsed = new Date(value);
+  return isNaN(parsed.getTime()) ? null : parsed;
+};
+
 export class OrderService {
   // Obtener todas las órdenes con sus items
   static async getAllOrders(): Promise<Order[]> {
@@ -89,12 +120,22 @@ export class OrderService {
         ? input.date 
         : new Date(input.date);
       
-      const fechaPago = input.fecha_pago 
-        ? (input.fecha_pago instanceof Date 
-            ? input.fecha_pago 
-            : new Date(input.fecha_pago))
-        : null;
-      
+      // Parsear fecha_pago que puede venir como "dd/mm/yyyy"
+      const fechaPago = parseFechaPago(input.fecha_pago);
+
+      // Verificar si el cliente ya está registrado
+      const cedula = input.customer_cedula;
+      let customerRes = await client.query('SELECT * FROM customers WHERE cedula = $1', [cedula]);
+
+      //Si no está registrado, registrarlo primero
+      if (customerRes.rows.length === 0) {
+        await client.query(
+          `INSERT INTO customers (cedula, full_name, email, phone, address, created_at)
+           VALUES ($1,$2,$3,$4,$5,NOW())`,
+          [cedula, input.customer_full_name, input.customer_email, input.customer_phone, input.customer_address]
+        );
+      }
+
       // Insertar la orden
       const orderResult = await client.query(
         `INSERT INTO orders (
@@ -148,9 +189,20 @@ export class OrderService {
       // Obtener la orden completa con items
       const completeOrder = await this.getOrderById(order.id);
       return completeOrder!;
-    } catch (error) {
+    }
+     catch (error: any) {
       await client.query('ROLLBACK');
       console.error('Error creando orden:', error);
+      // Log detallado para debugging
+      if (error.message) {
+        console.error('Mensaje de error:', error.message);
+      }
+      if (error.code) {
+        console.error('Código de error PostgreSQL:', error.code);
+      }
+      if (error.detail) {
+        console.error('Detalle del error:', error.detail);
+      }
       throw error;
     } finally {
       client.release();

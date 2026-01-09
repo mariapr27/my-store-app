@@ -124,9 +124,21 @@ router.post('/', async (req: Request, res: Response<ApiResponse<any>>) => {
     });
   } catch (error: any) {
     console.error('Error en POST /api/orders:', error);
+    // Log detallado del error
+    if (error.message) {
+      console.error('Mensaje:', error.message);
+    }
+    if (error.code) {
+      console.error('Código PostgreSQL:', error.code);
+    }
+    if (error.detail) {
+      console.error('Detalle:', error.detail);
+    }
+    // Enviar mensaje de error más descriptivo al cliente
+    const errorMessage = error.detail || error.message || 'Error al crear la orden';
     res.status(500).json({
       success: false,
-      error: error.message || 'Error al crear la orden',
+      error: errorMessage,
     });
   }
 });
