@@ -68,6 +68,14 @@ export const [ProductsProvider, useProducts] = createContextHook(() => {
     return products.find((p) => p.id === id);
   }, [products]);
 
+  const reduceProductStock = useCallback((productId: string, quantity: number) => {
+    setProducts(prev =>
+      prev.map(p =>
+        p.id === productId ? { ...p, stock: Math.max((p.stock || 0) - quantity, 0) } : p
+      )
+    );
+  }, []);
+
   return {
     products,
     isLoading,
@@ -76,5 +84,6 @@ export const [ProductsProvider, useProducts] = createContextHook(() => {
     updateProduct,
     deleteProduct,
     getProductById,
+    reduceProductStock,
   };
 });

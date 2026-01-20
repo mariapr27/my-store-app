@@ -108,12 +108,23 @@ export const [CartProvider, useCart] = createContextHook(() => {
       );
 
       if (existingItemIndex >= 0) {
-        newItems[existingItemIndex] = {
-          ...newItems[existingItemIndex],
-          quantity: newItems[existingItemIndex].quantity + 1,
-        };
+        const currentQuantity = newItems[existingItemIndex].quantity;
+        const availableStock = product.stock || 0;
+
+        if (currentQuantity < availableStock) {
+          newItems[existingItemIndex] = {
+            ...newItems[existingItemIndex],
+            quantity: currentQuantity + 1,
+          };
+        } else {
+          throw new Error('No hay suficiente stock disponible');
+        }
       } else {
-        newItems.push({ product, quantity: 1 });
+        if ((product.stock || 0) > 0) {
+          newItems.push({ product, quantity: 1 });
+        } else {
+          throw new Error('No hay suficiente stock disponible');
+        }
       }
 
       await saveCartToFirestore(newItems);
@@ -135,6 +146,13 @@ export const [CartProvider, useCart] = createContextHook(() => {
 
   const updateQuantity = useCallback(async (productId: string, quantity: number) => {
     try {
+      const product = items.find((item) => item.product.id === productId)?.product;
+      if (!product) throw new Error('Producto no encontrado');
+
+      if (quantity > (product.stock || 0)) {
+        throw new Error('Stock insuficiente');
+      }
+
       if (quantity <= 0) {
         await removeFromCart(productId);
         return;

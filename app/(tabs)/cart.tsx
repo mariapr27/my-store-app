@@ -2,23 +2,34 @@ import { useCart } from '../../contexts/CartContext';
 import { Image } from 'expo-image';
 import { router, Stack } from 'expo-router';
 import { Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react-native';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
+  Alert,
 } from 'react-native';
 
 export default function CartScreen() {
   const { items, updateQuantity, removeFromCart, getTotal, isLoading, error } = useCart();
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
   const handleCheckout = () => {
     router.push('/checkout');
   };
 
   const handleUpdateQuantity = async (productId: string, quantity: number) => {
+    const product = items.find((item) => item.product.id === productId)?.product;
+    if (!product) return;
+
+    if (quantity > (product.stock || 0)) {
+      setAlertMessage('No hay suficiente stock disponible para este producto.');
+      setTimeout(() => setAlertMessage(null), 3000); // Desvanece el mensaje después de 3 segundos
+      return;
+    }
+
     try {
       await updateQuantity(productId, quantity);
     } catch (error) {
@@ -102,6 +113,12 @@ export default function CartScreen() {
           headerTitleStyle: { fontWeight: '700' as const },
         }}
       />
+
+      {alertMessage && (
+        <View style={styles.alertContainer}>
+          <Text style={styles.alertText}>{alertMessage}</Text>
+        </View>
+      )}
 
       <ScrollView
         style={styles.itemsContainer}
@@ -330,5 +347,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 17,
     fontWeight: '700' as const,
+  },
+  alertContainer: { //mensaje de alerta de stock insuficiente
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#ffc107',
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  alertText: {
+    color: '#212529',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

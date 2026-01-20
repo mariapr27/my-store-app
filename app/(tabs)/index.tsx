@@ -43,12 +43,14 @@ const CategoryButton = ({
 
 const ProductCard = ({ product }: { product: Product }) => {
   const { addToCart } = useCart();
+  const { reduceProductStock } = useProducts(); // Importar la nueva función
   const [showAdded, setShowAdded] = useState(false);
   const scaleAnim = useState(new Animated.Value(1))[0];
 
   const handleAddToCart = async () => {
     try {
       await addToCart(product);
+      reduceProductStock(product.id, 1); // Reducir el stock en el contexto
       setShowAdded(true);
 
       Animated.sequence([
@@ -84,25 +86,26 @@ const ProductCard = ({ product }: { product: Product }) => {
         <Text style={styles.productDescription} numberOfLines={2}>
           {product.description}
         </Text>
-        <View style={styles.productFooter}>
-          <Text style={styles.productPrice}>${product.price.toFixed(2)}</Text>
-          <Pressable
-            onPress={handleAddToCart}
-            style={[
-              styles.addButton,
-              showAdded && styles.addButtonSuccess,
-            ]}
-          >
-            {showAdded ? (
-              <Check size={18} color="#fff" />
-            ) : (
-              <ShoppingBag size={18} color="#fff" />
-            )}
-            <Text style={styles.addButtonText}>
-              {showAdded ? 'Agregado' : 'Agregar'}
-            </Text>
-          </Pressable>
-        </View>
+        <Text style={styles.productPrice}>${product.price.toFixed(2)}</Text>
+        <Text style={styles.productStock}>Cantidad disponible: {product.stock}</Text>
+        <Pressable
+          onPress={handleAddToCart}
+          style={[
+            styles.addButton,
+            showAdded && styles.addButtonSuccess,
+            product.stock === 0 && { backgroundColor: '#adb5bd' }, // Cambiar color si no hay stock
+          ]}
+          disabled={product.stock === 0} // Deshabilitar si el stock es 0
+        >
+          {showAdded ? (
+            <Check size={18} color="#fff" />
+          ) : (
+            <ShoppingBag size={18} color="#fff" />
+          )}
+          <Text style={styles.addButtonText}>
+            {product.stock === 0 ? 'Sin stock' : showAdded ? 'Agregado' : 'Agregar'}
+          </Text>
+        </Pressable>
       </View>
     </Animated.View>
   );
@@ -304,6 +307,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700' as const,
     color: '#2d6a4f',
+  },
+  productStock: {
+    fontSize: 14,
+    color: '#6c757d',
+    marginBottom: 12,
   },
   addButton: {
     flexDirection: 'row',

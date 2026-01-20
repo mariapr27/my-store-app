@@ -10,7 +10,10 @@ router.get('/', async (req: Request, res: Response<ApiResponse<any[]>>) => {
     const products = await ProductService.getAllProducts();
     res.json({
       success: true,
-      data: products,
+      data: products.map(product => ({
+        ...product,
+        stock: product.stock || 0, // Asegurar que el stock esté presente
+      })),
       message: 'Productos obtenidos exitosamente',
     });
   } catch (error: any) {

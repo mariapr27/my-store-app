@@ -19,7 +19,7 @@ export class ProductService {
   static async getAllProducts(): Promise<Product[]> {
     try {
       const result = await query(
-        'SELECT * FROM products ORDER BY created_at DESC'
+        'SELECT id, name, description, price, stock, image_url, category, sale_type, created_at, updated_at FROM products ORDER BY created_at DESC'
       );
       return result.rows;
     } catch (error) {
@@ -32,7 +32,7 @@ export class ProductService {
   // Obtener un producto por ID
   static async getProductById(id: string): Promise<Product | null> {
     try {
-      const result = await query(
+      const result = await query( 
         'SELECT * FROM products WHERE id = $1',
         [id]
       );
