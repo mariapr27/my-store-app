@@ -17,9 +17,11 @@ import {
   TouchableOpacity,
   View,
   Platform,
+  Dimensions,
 } from 'react-native';
 
 const ADMIN_EMAIL = 'miyayitastore@gmail.com'; //  email de admin
+const screenWidth = Dimensions.get('window').width;
 
 export default function AdminScreen() {
   const [user, setUser] = useState<User | null>(null);
@@ -463,7 +465,7 @@ export default function AdminScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Administrar Productos</Text>
-          <Text style={styles.welcomeText}>Bienvenido, {user?.email}</Text>
+          <Text style={styles.welcomeText}>Bienvenido, {user?.email}    </Text>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
@@ -747,6 +749,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+    maxWidth: screenWidth > 460 ? 460 : '100%', // Limita el ancho en pantallas grandes
+    marginHorizontal: screenWidth > 460 ? 'auto' : 0, // Centra en pantallas grandes
   },
   loadingText: {
     textAlign: 'center',
@@ -764,7 +768,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e9ecef',
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700' as const,
     color: '#2d6a4f',
   },

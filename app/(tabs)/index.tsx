@@ -13,7 +13,10 @@ import {
   Text,
   View,
   Alert,
+  Dimensions,
 } from 'react-native';
+
+const screenWidth = Dimensions.get('window').width;
 
 const CategoryButton = ({
   category,
@@ -207,6 +210,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+    maxWidth: screenWidth > 460 ? 460 : '100%', // Limita el ancho en pantallas grandes
+    marginHorizontal: screenWidth > 460 ? 'auto' : 0, // Centra en pantallas grandes
+  
   },
   header: {
     backgroundColor: '#2d6a4f',
@@ -221,7 +227,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   headerSubtitle: {
-    fontSize: 15,
+    fontSize: 16,
     color: '#b7e4c7',
   },
   categoriesContainer: {

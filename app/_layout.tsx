@@ -6,11 +6,12 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Platform, Linking } from 'react-native';
+import { Platform, Linking, StyleSheet } from 'react-native';
 import { auth } from '../firebaseConfig';
 
 SplashScreen.preventAutoHideAsync();
 
+const screenWidth = Math.min(Platform.OS === 'web' ? window.innerWidth : 0, 460);
 const queryClient = new QueryClient();
 
 export default function RootLayout() {
@@ -70,3 +71,12 @@ export default function RootLayout() {
     </QueryClientProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+    maxWidth: Platform.OS === 'web' ? 460 : '100%', // Limita el ancho en web
+    marginHorizontal: Platform.OS === 'web' ? 'auto' : 0, // Centra en pantallas grandes
+  },
+});

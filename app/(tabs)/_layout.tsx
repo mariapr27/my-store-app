@@ -18,9 +18,10 @@ export default function TabLayout() {
           backgroundColor: '#fff',
           borderTopWidth: 1,
           borderTopColor: '#e9ecef',
+          height: 60,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: '600' as const,
         },
       }}
@@ -48,13 +49,13 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="admin"
-        options={{
-          title: 'Admin',
-          tabBarIcon: ({ color }) => <Settings size={24} color={color} />,
-        }}
-      />
+<Tabs.Screen
+  name="admin"
+  options={{
+    title: 'Opciones',
+    tabBarIcon: ({ color }) => <Settings size={24} color={color} />, // Cambiar el ícono
+  }}
+/>
     </Tabs>
   );
 }

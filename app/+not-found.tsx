@@ -1,6 +1,8 @@
 import { Link, Stack } from 'expo-router';
 import { AlertCircle } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, Dimensions } from 'react-native';
+
+const screenWidth = Dimensions.get('window').width;
 
 export default function NotFoundScreen() {
   return (
@@ -34,6 +36,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
     backgroundColor: '#f8f9fa',
+     maxWidth: screenWidth > 460 ? 460 : '100%', // Limita el ancho en pantallas grandes
+    marginHorizontal: screenWidth > 460 ? 'auto' : 0, // Centra en pantallas grandes
+  
   },
   title: {
     fontSize: 24,

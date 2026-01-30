@@ -16,7 +16,10 @@ import {
   TouchableOpacity,
   View,
   Platform,
+  Dimensions,
 } from 'react-native';
+
+  const screenWidth = Dimensions.get('window').width;
 
 export default function CheckoutScreen() {
   const { items, getTotal, clearCart } = useCart();
@@ -32,6 +35,7 @@ export default function CheckoutScreen() {
   });
   const [paymentMethod, setPaymentMethod] = useState('transferencia');
   const [errors, setErrors] = useState<Partial<CustomerInfo>>({});
+
   
   // Datos bancarios para transferencia
   const bankData = {
@@ -101,17 +105,21 @@ export default function CheckoutScreen() {
 
     console.log('Orden guardada en PostgreSQL con ID:', createdOrder.id);
 
-    router.push({
-      pathname: '/receipt',
-      params: { 
-        orderData: JSON.stringify({
-          ...orderData,
-          id: createdOrder.id, // Incluir el ID de PostgreSQL
-          firebaseId: createdOrder.id // Mantener compatibilidad con código existente
-        })
-      },
-    });
-    clearCart();
+    // Agregar un retraso de 3 segundos antes de redirigir
+    setTimeout(() => {
+      router.push({
+        pathname: '/receipt',
+        params: { 
+          orderData: JSON.stringify({
+            ...orderData,
+            id: createdOrder.id, // Incluir el ID de PostgreSQL
+            firebaseId: createdOrder.id // Mantener compatibilidad con código existente
+          })
+        },
+      });
+
+    clearCart(); // Refrescar el índice y mostrar el total de productos restantes
+    }, 3000); // 3 segundos de retraso
   } catch (error) {
     console.error('Error al procesar la orden:', error);
     Alert.alert(
@@ -293,6 +301,10 @@ const [showBancoModal, setShowBancoModal] = useState(false);
       { id: '0', nombre: 'Otro' },
     ];
 
+
+  function handleCedulaChange(text: string): void {
+    throw new Error('Function not implemented.');
+  }
 
     return (
     <View style={styles.container}>
@@ -625,6 +637,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+    maxWidth: screenWidth > 460 ? 460 : '100%', // Limita el ancho en pantallas grandes
+    marginHorizontal: screenWidth > 460 ? 'auto' : 0,
   },
   content: {
     flex: 1,

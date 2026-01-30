@@ -12,10 +12,11 @@ import {
   StyleSheet,
   Text,
   View,
+  Dimensions,
 } from 'react-native';
 
 
-
+const screenWidth = Dimensions.get('window').width;
 const generateReceiptHTML = (order: Order): string => {
   const itemsHTML = order.items
     .map(
@@ -185,12 +186,12 @@ const generateReceiptHTML = (order: Order): string => {
       <h2 class="section-title">Información del Cliente</h2>
       <div class="info-section">
         <div class="info-row">
-          <span class="info-label">Nombre:</span>
-          <span class="info-value">${order.customer.fullName}</span>
-        </div>
-        <div class="info-row">
           <span class="info-label">Cedula:</span>
           <span class="info-value">${order.customer.cedula}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Nombre:</span>
+          <span class="info-value">${order.customer.fullName}</span>
         </div>
         <div class="info-row">
           <span class="info-label">Email:</span>
@@ -320,9 +321,8 @@ export default function ReceiptScreen() {
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Cliente</Text>
-            <Text style={styles.infoText}>{order.customer.fullName}</Text>
             <Text style={styles.infoText}>{order.customer.cedula}</Text>
-            <Text style={styles.infoText}>{order.customer.email}</Text>
+            <Text style={styles.infoText}>{order.customer.fullName}</Text>
             <Text style={styles.infoText}>{order.customer.phone}</Text>
             <Text style={styles.infoText}>{order.customer.address}</Text>
           </View>
@@ -410,6 +410,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+    maxWidth: screenWidth > 490 ? 490 : '100%', // Limita el ancho en pantallas grandes
+    marginHorizontal: screenWidth > 490 ? 'auto' : 0, // Centra en pantallas grandes
   },
   content: {
     flex: 1,

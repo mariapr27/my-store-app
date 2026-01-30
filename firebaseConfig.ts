@@ -1,14 +1,14 @@
 // firebaseConfig.ts
 import { initializeApp } from "firebase/app";
-import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { getAuth, initializeAuth } from 'firebase/auth';
+import { getReactNativePersistence } from '@react-native-firebase/auth';
 import type { Auth } from 'firebase/auth';
 import { getAnalytics, isSupported  } from "firebase/analytics";
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-
-
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 // Configuración de Firebase 
 const firebaseConfig = {
@@ -37,8 +37,6 @@ const firebaseConfig = {
  }
 
 
-
-
 // Configurar Auth con persistencia según plataforma
 let auth: Auth;
 if (Platform.OS === 'web') {
@@ -48,13 +46,17 @@ if (Platform.OS === 'web') {
   // En móviles usa AsyncStorage para persistencia
   try {
     auth = initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage)
+      //persistence: getReactNativePersistence(AsyncStorage)
+      persistence: getReactNativePersistence(ReactNativeAsyncStorage),
     });
   } catch (error) {
     // Si ya fue inicializado (hot reload), usa la instancia existente
     auth = getAuth(app);
   }
 }
+
+
+
 // Exportar servicios
 export { auth };
 export const db = getFirestore(app);

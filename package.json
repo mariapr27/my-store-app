@@ -10,12 +10,14 @@
     "build": "expo export",
     "dev:server": "tsx watch backend/src/server.ts",
     "build:server": "tsc --project backend/tsconfig.json",
-    "start:server": "node backend/dist/server.js"
+    "start:server": "node backend/dist/server.js",
+    "proxy": "https://firebase.googleapis.com"
   },
   "dependencies": {
     "@nkzw/create-context-hook": "^1.1.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "^8.5.0",
+    "@react-native-firebase/auth": "^23.8.3",
     "@react-native-picker/picker": "^2.11.4",
     "@tanstack/react-query": "^5.90.2",
     "cors": "^2.8.5",
@@ -54,7 +56,8 @@
     "@types/pg": "^8.15.6",
     "@types/react": "~19.1.0",
     "tsx": "^4.21.0",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "@react-native-community/cli": "latest"
   },
   "private": true
 }

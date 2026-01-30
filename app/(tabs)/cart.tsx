@@ -10,7 +10,10 @@ import {
   Text,
   View,
   Alert,
+  Dimensions,
 } from 'react-native';
+
+const screenWidth = Dimensions.get('window').width;
 
 export default function CartScreen() {
   const { items, updateQuantity, removeFromCart, getTotal, isLoading, error } = useCart();
@@ -190,6 +193,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+    maxWidth: screenWidth > 460 ? 460 : '100%', // Limita el ancho en pantallas grandes
+    marginHorizontal: screenWidth > 460 ? 'auto' : 0, // Centra en pantallas grandes
   },
   emptyContainer: {
     flex: 1,
